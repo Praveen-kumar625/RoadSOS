@@ -4,6 +4,10 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "security-audit": "node security/sast/static-analyzer.js && node evals/prompt-bench/harness.js"
+    "security-audit": "node security/sast/static-analyzer.js && node evals/prompt-bench/harness.js",
+    "generate-doc": "node scripts/generate-submission-doc.js"
+  },
+  "dependencies": {
+    "docx": "^8.5.0"
   }
 }
