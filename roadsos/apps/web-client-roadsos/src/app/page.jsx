@@ -9,6 +9,7 @@ import React, { useState, useEffect } from 'react';
 import io from 'socket.io-client';
 import { ShieldAlert, Activity, MapPin, BrainCircuit, Car, Info, Siren, Wrench, ShieldCheck } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import PrivacyConsent from '../shared/components/PrivacyConsent';
 
 export default function Dashboard() {
   const [telemetry, setTelemetry] = useState(null);
