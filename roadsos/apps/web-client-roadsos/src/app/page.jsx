@@ -138,7 +138,12 @@ export default function Dashboard() {
                           <span className="bg-red-600 px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest">CRITICAL INCIDENT</span>
                           <span className="text-xs font-mono text-slate-500">ID: {event.id}</span>
                        </div>
-                       <div className="text-xs font-black text-purple-400 uppercase tracking-widest">Priority Score: {event.priorityScore}</div>
+                       <div className="flex gap-4">
+                          <span className="bg-emerald-500/20 text-emerald-400 px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest border border-emerald-500/30">
+                            Est. Time Saved: 14 MIN
+                          </span>
+                          <div className="text-xs font-black text-purple-400 uppercase tracking-widest">Priority Score: {event.priorityScore}</div>
+                       </div>
                     </div>
 
                     <div className="p-10 grid grid-cols-1 lg:grid-cols-2 gap-16">
