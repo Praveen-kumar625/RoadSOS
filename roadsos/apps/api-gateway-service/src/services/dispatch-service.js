@@ -5,77 +5,73 @@
  */
 
 import { getEmergencyServicesFromPublicAPI } from '../routing/spatial-indexer.js';
+import { IntelligenceService } from './intelligence-service.js';
 
 export class DispatchService {
   constructor(io) {
     this.io = io;
-    this.maxRetries = 3;
+    this.activeEmergencies = new Map();
   }
 
   async processSOS(crashData, analysis) {
     const alertId = `SOS-${Date.now()}`;
-    console.log(`[DISPATCH] [${alertId}] Initiating Lifecycle: CREATED`);
+    const trafficFactor = Math.random(); // Simulated live traffic factor
     
     let alertState = {
       id: alertId,
-      status: 'CREATED',
-      timestamp: Date.now(),
-      retryCount: 0
+      status: 'ANALYZING',
+      location: crashData.location,
+      analysis: analysis,
+      responders: [],
+      timestamp: Date.now()
     };
 
+    this.activeEmergencies.set(alertId, alertState);
     this.updateStatus(alertState);
 
     try {
-      // Transition to ANALYZING (Resource Discovery)
-      alertState.status = 'ANALYZING';
-      this.updateStatus(alertState);
+      // 1. Fetch ALL mandated responders (Police + Ambulance + Repair)
+      const allResponders = await getEmergencyServicesFromPublicAPI(
+        crashData.location.lat, 
+        crashData.location.lon
+      );
 
-      const responders = await this.findRespondersWithRetry(crashData.location);
-      
-      if (!responders || responders.length === 0) {
-        throw new Error('No responders found in vicinity');
-      }
+      // 2. Multi-Agent Coordination Logic
+      // We don't just pick one; we pick the BEST for each required category
+      const categories = ['hospital', 'police', 'towing', 'puncture'];
+      const coordinatedTeam = [];
 
-      // Transition to DISPATCHED
+      categories.forEach(cat => {
+        const available = allResponders.filter(r => r.category === cat);
+        if (available.length > 0) {
+          // Score each and pick the best
+          const scored = available.map(r => {
+            const dist = 1000; // Mock distance for hackathon
+            const intel = IntelligenceService.calculatePriority(analysis, dist, trafficFactor);
+            return { ...r, ...intel };
+          }).sort((a, b) => b.score - a.score);
+
+          coordinatedTeam.push(scored[0]);
+        }
+      });
+
+      // 3. Update State to DISPATCHED
       alertState.status = 'DISPATCHED';
-      alertState.responder = responders[0];
-      alertState.eta = Math.floor(Math.random() * 15) + 5; // Simulated ETA
+      alertState.responders = coordinatedTeam;
+      alertState.priorityScore = coordinatedTeam[0]?.score || 50;
+      alertState.explanation = coordinatedTeam[0]?.reasoning || "Standard dispatch protocols active.";
+      
       this.updateStatus(alertState);
-
-      console.log(`[DISPATCH] [${alertId}] Successfully dispatched to ${responders[0].name}`);
+      console.log(`[ORCHESTRATOR] [${alertId}] Multi-Agent Team Dispatched.`);
 
     } catch (error) {
-      console.error(`[DISPATCH] [${alertId}] FATAL FAILURE:`, error.message);
       alertState.status = 'FAILED';
       alertState.lastError = error.message;
       this.updateStatus(alertState);
     }
   }
 
-  async findRespondersWithRetry(location, attempt = 1) {
-    try {
-      console.log(`[DISPATCH] Finding responders (Attempt ${attempt}/${this.maxRetries})...`);
-      const results = await getEmergencyServicesFromPublicAPI(location.lat, location.lon);
-      
-      if (results.length === 0 && attempt < this.maxRetries) {
-        throw new Error('OSM Query returned zero results');
-      }
-      
-      return results;
-    } catch (err) {
-      if (attempt < this.maxRetries) {
-        const delay = Math.pow(2, attempt) * 1000; // Exponential backoff
-        await new Promise(resolve => setTimeout(resolve, delay));
-        return this.findRespondersWithRetry(location, attempt + 1);
-      }
-      throw err;
-    }
-  }
-
   updateStatus(state) {
-    // Audit Logging
-    console.log(`[STATE_CHANGE] [${state.id}] -> ${state.status}`);
-    // Real-time Update to Dashboard
-    this.io.emit('emergency_alert_update', state);
+    this.io.emit('emergency_orchestration_update', state);
   }
 }
