@@ -5,9 +5,12 @@
   "type": "module",
   "scripts": {
     "security-audit": "node security/sast/static-analyzer.js && node evals/prompt-bench/harness.js",
-    "generate-doc": "node scripts/generate-submission-doc.js"
+    "generate-doc": "node scripts/generate-submission-doc.js",
+    "pack-submission": "node scripts/pack-submission.js"
   },
   "dependencies": {
-    "docx": "^8.5.0"
+    "docx": "^8.5.0",
+    "pptxgenjs": "^3.12.0",
+    "archiver": "^6.0.1"
   }
 }

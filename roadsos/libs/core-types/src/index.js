@@ -4,4 +4,5 @@
  * Project: RoadSoS (IIT Madras Hackathon)
  */
 
-export * from './schemas/crash-event.schema.js';
+export * from './schemas/index.js';
+export * from './types/index.js';
