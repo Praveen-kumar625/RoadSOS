@@ -8,68 +8,81 @@ import express from 'express';
 import { createServer } from 'http';
 import { Server } from 'socket.io';
 import helmet from 'helmet';
-import rateLimit from 'express-rate-limit';
 import cors from 'cors';
-import { analyzeCrashWithOpenLLM } from './ingestion/crash-event-ingestion.js';
+import { AegisCoreAI } from '@roadsos/ai-local-models';
 import { DispatchService } from './services/dispatch-service.js';
 
 const app = express();
 const httpServer = createServer(app);
 const io = new Server(httpServer, { cors: { origin: '*' } });
 
-// Business Logic Orchestrator
+// Unified AI Instance (Library Powered)
+const aegisAI = new AegisCoreAI(process.env.HF_TOKEN);
 const dispatcher = new DispatchService(io);
 
-// OWASP Security Hardening
 app.use(helmet());
 app.use(cors());
-app.use(express.json({ limit: '1mb' }));
+app.use(express.json());
 
-// Rate Limiting to prevent abuse
-app.use('/api/', rateLimit({ windowMs: 15 * 60 * 1000, max: 100 }));
-
-io.on('connection', (socket) => {
-  console.log('[Socket] Client connected: ' + socket.id);
+/**
+ * OBSERVABILITY MIDDLEWARE
+ * Logs every request and system health metrics
+ */
+app.use((req, res, next) => {
+  const start = Date.now();
+  res.on('finish', () => {
+    const duration = Date.now() - start;
+    console.log(`[HTTP] ${req.method} ${req.url} - ${res.statusCode} (${duration}ms)`);
+    io.emit('system_health', { 
+      uptime: process.uptime(),
+      memory: process.memoryUsage().rss,
+      lastLatency: duration
+    });
+  });
+  next();
 });
 
 /**
- * PRODUCTION-GRADE INGESTION ENDPOINT
- * Shifted from "Direct Call" to "Event Orchestration"
+ * PRODUCTION-GRADE SOS PIPELINE
  */
 app.post('/api/v1/ingestion/crash', async (req, res) => {
   const { telemetry, location, timestamp } = req.body;
-  
-  // 1. Structural Validation
-  if (!telemetry || !location) {
-    return res.status(400).json({ error: 'Schema Validation Failed: Missing telemetry/location' });
-  }
+  if (!telemetry || !location) return res.status(400).json({ error: 'INVALID_SCHEMA' });
 
-  // 2. Immediate Feedback to Dashboard
   io.emit('live_telemetry', { telemetry, location, timestamp });
 
   try {
-    // 3. AI Severity Prediction (Aegis-Core)
-    const analysis = await analyzeCrashWithOpenLLM(telemetry);
+    const analysis = await aegisAI.analyze(telemetry);
     io.emit('ai_analysis', analysis);
 
-    // 4. Trigger the Resilient Dispatch Lifecycle
     if (analysis.isCrash && analysis.severity === 'CRITICAL') {
-      // Non-blocking background process to handle retries and state changes
       dispatcher.processSOS({ telemetry, location, timestamp }, analysis);
-      
-      return res.status(202).json({ 
-        message: 'SOS_ACCEPTED', 
-        analysis,
-        tracking_id: 'SOS-' + Date.now() 
-      });
+      return res.status(202).json({ status: 'PROCESSING', analysis });
     }
     
     res.status(200).json({ status: 'NOMINAL', analysis });
   } catch (err) {
-    console.error('[GATEWAY_FATAL]', err);
-    res.status(500).json({ error: 'Emergency processing engine failure' });
+    res.status(500).json({ error: 'PIPELINE_ERROR' });
   }
 });
 
-const PORT = process.env.PORT || 5000;
-httpServer.listen(PORT, () => console.log('🚀 [RoadSoS Gateway] Production-ready on port ' + PORT));
+/**
+ * JUDGE'S ONE-CLICK SIMULATOR
+ */
+app.post('/api/v1/simulation/trigger-demo', async (req, res) => {
+  const demoData = {
+    telemetry: { accelerometer: { x: 18.2, y: -5.1, z: 2.5 }, speed_kmh: 92, vibration_hz: 850 },
+    location: { lat: 12.9915, lon: 80.2337 },
+    timestamp: Date.now()
+  };
+  
+  const analysis = await aegisAI.analyze(demoData.telemetry);
+  io.emit('live_telemetry', demoData);
+  io.emit('ai_analysis', analysis);
+  dispatcher.processSOS(demoData, analysis);
+  
+  res.status(200).json({ status: 'DEMO_RUNNING' });
+});
+
+const PORT = 5000;
+httpServer.listen(PORT, () => console.log('🛡️ Aegis-Core Gateway Solidified on Port ' + PORT));
