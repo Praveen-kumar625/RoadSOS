@@ -14,30 +14,62 @@ export class AegisCoreAI {
 
   async analyze(telemetry) {
     const start = Date.now();
-    const prompt = `<system>You are Aegis-Core. Analyze telemetry for vehicular crash detection. Format: JSON only.</system>
-    <telemetry>${JSON.stringify(telemetry)}</telemetry>`;
+    
+    // 1. DETERMINISTIC RULE-BASED ANALYSIS (Primary)
+    // Using standard G-force impact thresholds for road safety
+    const maxG = Math.max(
+      Math.abs(telemetry.accelerometer?.x || 0), 
+      Math.abs(telemetry.accelerometer?.y || 0)
+    );
+    
+    let result = {
+      isCrash: maxG > 12, // Standard threshold for high-impact collision
+      severity: maxG > 15 ? 'CRITICAL' : (maxG > 8 ? 'MODERATE' : 'NOMINAL'),
+      confidence: 0.9,
+      isFallback: false,
+      method: 'RULE_BASED'
+    };
 
+    // 2. AI ENHANCEMENT (Optional)
     try {
+      const prompt = `<system>You are Aegis-Core. Analyze telemetry for vehicular crash detection. Format: JSON only.</system>
+      <telemetry>${JSON.stringify(telemetry)}</telemetry>`;
+
       const res = await this.hf.textGeneration({
         model: this.model,
         inputs: prompt,
         parameters: { max_new_tokens: 150, temperature: 0.1 }
       });
       
-      const latency = Date.now() - start;
-      const analysis = JSON.parse(res.generated_text.match(/\{[\s\S]*\}/)[0]);
-      
-      return { ...analysis, latency };
+      const aiResponse = this.parseCleanJson(res.generated_text);
+      if (aiResponse) {
+        // AI detected something more subtle or confirmed the rule
+        result = { 
+          ...result, 
+          ...aiResponse, 
+          method: 'AI_ENHANCED',
+          latency: Date.now() - start 
+        };
+      }
     } catch (err) {
-      // Robust Fallback (Circuit Breaker)
-      const maxG = Math.max(Math.abs(telemetry.accelerometer.x), Math.abs(telemetry.accelerometer.y));
-      return {
-        isCrash: maxG > 12,
-        severity: maxG > 12 ? 'CRITICAL' : 'NOMINAL',
-        confidence: 0.95,
-        latency: Date.now() - start,
-        isFallback: true
-      };
+      console.warn("[Aegis AI] Model unavailable, proceeding with Rule-Based logic.");
+      result.isFallback = true;
+    }
+
+    result.latency = Date.now() - start;
+    return result;
+  }
+
+  /**
+   * Robust JSON parser that handles LLM noise
+   */
+  parseCleanJson(text) {
+    try {
+      const match = text.match(/\{[\s\S]*\}/);
+      if (!match) return null;
+      return JSON.parse(match[0]);
+    } catch (e) {
+      return null;
     }
   }
 }

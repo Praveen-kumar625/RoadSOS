@@ -1,0 +1,46 @@
+{
+  "emergencies": {
+    "SOS-1776796288388": {
+      "id": "SOS-1776796288388",
+      "status": "HUMAN_ESCALATION",
+      "location": {
+        "lat": 12.9915,
+        "lon": 80.2337
+      },
+      "guardianLink": "https://roadsos.in/v/eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IlNPUy0xNzc2Nzk2Mjg4Mzg4IiwiaWF0IjoxNzc2Nzk2Mjg4LCJleHAiOjE3NzY3OTgwODh9.gTsyoSDjj1V0YwV7ogW8Vl803osb3dV46I0wofE_VNY",
+      "timestamp": 1776796288390
+    },
+    "SOS-1776796288405": {
+      "id": "SOS-1776796288405",
+      "status": "DISPATCHED",
+      "location": {
+        "lat": 12.9915,
+        "lon": 80.2337
+      },
+      "guardianLink": "https://roadsos.in/v/eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IlNPUy0xNzc2Nzk2Mjg4NDA1IiwiaWF0IjoxNzc2Nzk2Mjg4LCJleHAiOjE3NzY3OTgwODh9.y4GNUQiZEpeO436zIvvu__HW0Iy_SXsFE10gfnQd698",
+      "timestamp": 1776796288405,
+      "responders": [
+        {
+          "id": "HOSP-001",
+          "name": "IITM Institute Hospital",
+          "lat": 12.9912,
+          "lon": 80.2335,
+          "category": "hospital",
+          "status": "AVAILABLE",
+          "distance": 39.77896937604086,
+          "emergency": true,
+          "score": 100,
+          "factors": {
+            "severity": 100,
+            "availability": 100,
+            "proximity": 99
+          },
+          "reasoning": "Fastest AVAILABLE responder (40m). Fail-safe auto-dispatch active.",
+          "eta": 1
+        }
+      ],
+      "current_eta": 1
+    }
+  },
+  "timestamp": 1776796288406
+}

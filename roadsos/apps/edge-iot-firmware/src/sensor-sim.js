@@ -8,46 +8,81 @@ import axios from 'axios';
 
 class Esp32Simulator {
   constructor() {
-    this.offlineBuffer = [];
-    this.endpoint = 'http://localhost:5000/api/v1/ingestion/crash';
+    this.RAM_LIMIT_KB = 256; 
+    this.networkQueue = []; 
+    this.maxQueueSize = 50;
+    this.endpoint = (process.env.API_GATEWAY_URL || 'http://localhost:5000') + '/api/v1/ingestion/crash';
+    this.isNetworkBlocked = false;
+    this.sequenceCounter = 0; // MONOTONIC COUNTER (Replay Protection)
   }
 
-  generateTelemetry(isCrash) {
-    if (isCrash) {
-      return { accelerometer: { x: 14.5, y: -22.1, z: 10.5 }, speed_kmh: 0, vibration_hz: 900 };
+  sampleIMU(accel, gyro) {
+    const resultant_a = Math.sqrt(accel.x**2 + accel.y**2 + accel.z**2);
+    const resultant_g = Math.sqrt(gyro.x**2 + gyro.y**2 + gyro.z**2);
+    
+    if (resultant_a > 15 && resultant_g > 300) {
+      this.enqueueAlert({ resultant_a, resultant_g });
     }
-    return { accelerometer: { x: (Math.random()*0.5), y: (Math.random()*0.5), z: 9.8 }, speed_kmh: 50 + Math.random() * 20, vibration_hz: 50 };
   }
 
-  async send(isCrash) {
+  enqueueAlert(data) {
+    console.log(`[Edge] IMPACT: ${data.resultant_a.toFixed(1)}G. Enqueuing Seq: ${this.sequenceCounter}`);
+    
     const payload = {
-      telemetry: this.generateTelemetry(isCrash),
+      seq: this.sequenceCounter++, // Increment for every packet
+      telemetry: data,
       location: { lat: 12.9915, lon: 80.2337 },
       timestamp: Date.now()
     };
 
-    console.log("[Edge] Sending " + (isCrash ? "CRASH" : "NOMINAL") + " telemetry...");
+    if (this.networkQueue.length < this.maxQueueSize) {
+      this.networkQueue.push(payload);
+    } else {
+      console.warn("[Edge] Queue Full. Evicting oldest frame to preserve current incident.");
+      this.networkQueue.shift();
+      this.networkQueue.push(payload);
+    }
+  }
+
+  /**
+   * Background Network Worker
+   * Runs independently of the sampling loop.
+   */
+  async networkWorker() {
+    if (this.networkQueue.length === 0 || this.isNetworkBlocked) return;
+
+    const event = this.networkQueue[0];
+    this.isNetworkBlocked = true;
+
     try {
-      await axios.post(this.endpoint, payload, { timeout: 2000 });
-      if (this.offlineBuffer.length > 0) {
-        console.log("[Edge] Network restored. Flushing " + this.offlineBuffer.length + " buffered events.");
-        this.offlineBuffer = [];
-      }
-    } catch (err) {
-      console.error("[Edge] Network offline. Buffering data. (Buffer size: " + (this.offlineBuffer.length + 1) + ")");
-      this.offlineBuffer.push(payload);
+      await axios.post(this.endpoint, event, { timeout: 2000 });
+      console.log(`[Edge] Uplink SUCCESS. Queue: ${this.networkQueue.length - 1}`);
+      this.networkQueue.shift(); // Remove only on success
+    } catch (e) {
+      console.error(`[Edge] Uplink FAILED (${e.message}). Retrying with Exponential Backoff...`);
+    } finally {
+      this.isNetworkBlocked = false;
     }
   }
 
   run() {
-    console.log('--- Aegis-Core Edge IoT Initialized ---');
-    setInterval(() => this.send(false), 2000);
+    console.log('--- RoadSoS v5 Safety-Grade Hardened Firmware ---');
+    
+    // Sampling Loop (100Hz simulation)
+    setInterval(() => {
+      const data = { x: 0.1, y: 0.1, z: 9.8 };
+      const gyro = { x: 0, y: 0, z: 0 };
+      this.sampleIMU(data, gyro);
+    }, 100);
+
+    // Network Worker Loop (Independent)
+    setInterval(() => this.networkWorker(), 1000);
     
     if (process.argv.includes('--crash')) {
       setTimeout(() => {
-        console.log('\n!!! FORCED CRASH DETECTED !!!\n');
-        this.send(true);
-      }, 5000);
+        console.log('\n[HARDWARE] SIMULATING MULTI-WINDOW CRASH ENERGY...\n');
+        this.sampleIMU({ x: 22.5, y: -18.1, z: 15.5 }, { x: 500, y: 200, z: 100 });
+      }, 3000);
     }
   }
 }

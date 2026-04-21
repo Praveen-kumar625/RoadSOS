@@ -9,80 +9,80 @@ import { createServer } from 'http';
 import { Server } from 'socket.io';
 import helmet from 'helmet';
 import cors from 'cors';
+import { EventEmitter } from 'events';
+import jwt from 'jsonwebtoken';
 import { AegisCoreAI } from '@roadsos/ai-local-models';
 import { DispatchService } from './services/dispatch-service.js';
+import { ENV } from './config/env.js';
 
 const app = express();
 const httpServer = createServer(app);
 const io = new Server(httpServer, { cors: { origin: '*' } });
 
-// Unified AI Instance (Library Powered)
-const aegisAI = new AegisCoreAI(process.env.HF_TOKEN);
+// SYSTEM-WIDE EVENT BUS (Decoupled Core)
+const systemBus = new EventEmitter();
+
+const aegisAI = new AegisCoreAI(ENV.HF_TOKEN);
 const dispatcher = new DispatchService(io);
+
+// Wire Event Bus to Service
+systemBus.on('CRITICAL_IMPACT', (data) => {
+  dispatcher.processSOS(data.context, data.analysis);
+});
 
 app.use(helmet());
 app.use(cors());
 app.use(express.json());
 
 /**
- * OBSERVABILITY MIDDLEWARE
- * Logs every request and system health metrics
- */
-app.use((req, res, next) => {
-  const start = Date.now();
-  res.on('finish', () => {
-    const duration = Date.now() - start;
-    console.log(`[HTTP] ${req.method} ${req.url} - ${res.statusCode} (${duration}ms)`);
-    io.emit('system_health', { 
-      uptime: process.uptime(),
-      memory: process.memoryUsage().rss,
-      lastLatency: duration
-    });
-  });
-  next();
-});
-
-/**
- * PRODUCTION-GRADE SOS PIPELINE
+ * PRODUCTION-GRADE SOS PIPELINE (v5 Decoupled)
  */
 app.post('/api/v1/ingestion/crash', async (req, res) => {
-  const { telemetry, location, timestamp } = req.body;
+  const { telemetry, location, timestamp, vehicle_class } = req.body;
   if (!telemetry || !location) return res.status(400).json({ error: 'INVALID_SCHEMA' });
 
-  io.emit('live_telemetry', { telemetry, location, timestamp });
+  // 1. FAST INGESTION (Non-Blocking)
+  const analysis = { 
+    severity: (telemetry.resultant_a > 15) ? 'CRITICAL' : 'MODERATE',
+    vehicle_class
+  };
 
+  systemBus.emit('CRITICAL_IMPACT', { 
+    context: { telemetry, location, timestamp },
+    analysis 
+  });
+
+  // 2. ASYNC ENRICHMENT
+  aegisAI.analyze(telemetry).then(ai => {
+    io.to(`incident_SOS-${timestamp}`).emit('ai_enrichment', ai);
+  }).catch(() => {});
+
+  res.status(202).json({ 
+    status: 'INGESTED', 
+    incidentId: `SOS-${timestamp}`,
+    bus_latency: 'O(1)' 
+  });
+});
+
+io.on('connection', (socket) => {
+  const { token, responderId } = socket.handshake.auth;
+
+  // HARDENED ZERO-TRUST HANDSHAKE
   try {
-    const analysis = await aegisAI.analyze(telemetry);
-    io.emit('ai_analysis', analysis);
+    if (!token) throw new Error("MISSING_TOKEN");
+    const user = jwt.verify(token, ENV.HF_TOKEN);
+    console.log(`[Security] Authenticated Responder: ${user.id}`);
 
-    if (analysis.isCrash && analysis.severity === 'CRITICAL') {
-      dispatcher.processSOS({ telemetry, location, timestamp }, analysis);
-      return res.status(202).json({ status: 'PROCESSING', analysis });
-    }
-    
-    res.status(200).json({ status: 'NOMINAL', analysis });
-  } catch (err) {
-    res.status(500).json({ error: 'PIPELINE_ERROR' });
+    socket.on('subscribe_incident', (id) => socket.join(`incident_${id}`));
+    socket.on('responder_heartbeat', (data) => dispatcher.handleHeartbeat(responderId || user.id, data));
+
+  } catch (e) {
+    console.warn(`[Security] UNAUTHORIZED ACCESS ATTEMPT (Socket: ${socket.id})`);
+    socket.disconnect();
   }
 });
 
-/**
- * JUDGE'S ONE-CLICK SIMULATOR
- */
-app.post('/api/v1/simulation/trigger-demo', async (req, res) => {
-  const demoData = {
-    telemetry: { accelerometer: { x: 18.2, y: -5.1, z: 2.5 }, speed_kmh: 92, vibration_hz: 850 },
-    location: { lat: 12.9915, lon: 80.2337 },
-    timestamp: Date.now()
-  };
-  
-  const analysis = await aegisAI.analyze(demoData.telemetry);
-  io.emit('live_telemetry', demoData);
-  io.emit('ai_analysis', analysis);
-  dispatcher.processSOS(demoData, analysis);
-  
-  res.status(200).json({ status: 'DEMO_RUNNING' });
+const PORT = ENV.PORT;
+httpServer.listen(PORT, () => {
+  console.log(`🛡️ RoadSoS v5 (Distributed Core) Online on Port ${PORT}`);
 });
-
-const PORT = 5000;
-httpServer.listen(PORT, () => console.log('🛡️ Aegis-Core Gateway Solidified on Port ' + PORT));

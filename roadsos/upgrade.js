@@ -284,7 +284,7 @@ export default function Dashboard() {
 class Esp32Simulator {
   constructor() {
     this.offlineBuffer = [];
-    this.endpoint = 'http://localhost:5000/api/v1/ingestion/crash';
+    this.endpoint = (process.env.API_GATEWAY_URL || 'http://localhost:5000') + '/api/v1/ingestion/crash';
   }
 
   generateTelemetry(isCrash) {
@@ -434,3 +434,4 @@ Object.entries(filesToUpdate).forEach(([file, content]) => {
 });
 
 console.log('\\n🚀 GOD-LEVEL CODEBASE INJECTION COMPLETE.');
+ECTION COMPLETE.');

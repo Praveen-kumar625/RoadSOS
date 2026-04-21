@@ -19,7 +19,8 @@ export default function Dashboard() {
   const [health, setHealth] = useState({ uptime: 0, memory: 0, lastLatency: 0 });
 
   useEffect(() => {
-    const socket = io('http://localhost:5000');
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+    const socket = io(apiUrl);
     
     socket.on('live_telemetry', (data) => {
       setTelemetry(data);
@@ -38,7 +39,8 @@ export default function Dashboard() {
 
   const triggerDemo = async () => {
     setIsSimulating(true);
-    await fetch('http://localhost:5000/api/v1/simulation/trigger-demo', { method: 'POST' });
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+    await fetch(`${apiUrl}/api/v1/simulation/trigger-demo`, { method: 'POST' });
   };
 
   return (

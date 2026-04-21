@@ -1,32 +1,49 @@
-# RoadSoS Pro: AI-Powered Emergency Infrastructure
+# RoadSoS: Deterministic Emergency Orchestration
 **Divine Coders | IIT Madras Hackathon 2026**
 
-![Status](https://img.shields.io/badge/Status-100%25_Solid_Submission-brightgreen)
-![Tech](https://img.shields.io/badge/Stack-Next.js_15--Node.js--Turbo-blue)
+RoadSoS is a prototype emergency response system designed to reduce response times through deterministic dispatch logic, geospatial analysis, and multi-responder coordination.
 
-RoadSoS Pro is a production-grade emergency orchestration system designed to eliminate reporting delays and optimize rescue operations using Edge AI and real-time spatial data.
+## 🛠 Project Objectives
+The goal of this prototype is to demonstrate a reliable pipeline from incident detection to responder dispatch. Unlike standard reporting apps, RoadSoS focuses on the **orchestration** of multiple services (Hospitals, Police, Towing) based on real-world constraints.
 
-## 🚀 Key Differentiators (Judge's Guide)
-1.  **Orchestration vs. Reporting:** Unlike basic SOS apps, RoadSoS uses an **Emergency Scoring System (ESS)** to coordinate multiple responders (Police, Hospital, Towing) as a single unit.
-2.  **Observability-First:** Real-time system health monitoring, including **M2M Latency tracking** and infrastructure load visualization.
-3.  **Edge Resilience:** An **Offline-First Circular Buffer** on the ESP32 ensures zero data loss in rural connectivity "dead zones."
-4.  **Aegis-Core AI:** Hybrid inferencing (Qwen 2.5) with **Circuit Breaker Fallbacks** for reliable crash severity validation.
+## 🚀 Key Features
+- **Deterministic Dispatch:** Replaced random logic with a scoring system based on the Haversine formula (distance), responder availability, and incident severity.
+- **Geospatial Intelligence:** Primary lookups utilize a verified local dataset of responders around the IIT Madras area, with a dynamic fallback to the OpenStreetMap Overpass API.
+- **Hybrid AI Pipeline:** Uses a rule-based physics engine (G-force thresholds) as the primary detection logic, augmented by LLM analysis (Qwen 2.5) for confirmation and nuance.
+- **Observability:** Real-time monitoring of system health, M2M latency, and telemetry ingestion.
 
-## 🛠 Engineering Excellence
-- **Monorepo Architecture:** Powered by **Turbo & NX** for high-speed builds and shared library caching.
-- **Shared Intelligence:** Centralized logic in `libs/ai-local-models` and `libs/core-types` (Zod schemas).
-- **OWASP Hardened:** Built-in SAST security scanning and rate limiting.
+## 🏗 System Architecture
+The system follows a linear, predictable flow:
+1.  **Edge Ingestion:** Receives telemetry (accelerometer, speed) from IoT devices.
+2.  **Detection Engine:** 
+    - **Rules:** Immediate crash detection based on G-force impact (>12G).
+    - **AI:** Secondary validation using HuggingFace Inference (Qwen 2.5-7B).
+3.  **Spatial Indexing:** Identifies the closest available responders using Haversine distance.
+4.  **Emergency Orchestration:** Scores and selects the optimal "Response Team" (Hospital, Police, Towing) using the Emergency Scoring System (ESS).
+5.  **Dispatch:** Emits orchestration events to responders and tracking dashboards.
 
-## 📦 Quick Execution
+## 📦 Tech Stack
+- **Backend:** Node.js (Express), Socket.io (Real-time updates)
+- **Frontend:** Next.js (React), Tailwind CSS, Recharts
+- **AI:** HuggingFace Inference SDK (@huggingface/inference)
+- **Geospatial:** Haversine Algorithm, Overpass API (OSM)
+- **Tooling:** Turbo (Monorepo), Jest (Testing)
+
+## 🚦 Quick Start
 ```bash
-# Start the entire ecosystem
-./scripts/docker/local-up.sh
+# Install dependencies
+npm install
+
+# Start the ecosystem
+npm run dev
 ```
 
-## 📄 Submission Artifacts
-- **Technical Report:** `RoadSoS_Submission_Final.docx` (Generated programmatically)
-- **Presentation:** 7-Slide Strategic Pitch in `docs/hackathon-submission/PRESENTATION_OUTLINE.md`
-- **Simulation Playbook:** Step-by-step judge's walkthrough in `SUBMISSION_PLAYBOOK.md`
+## 🧪 Validation
+This prototype includes an integration test suite to verify the deterministic nature of the dispatch algorithm.
+```bash
+cd apps/api-gateway-service
+npm test
+```
 
 ## 👥 Team
 **Praveen Kumar** (Lead Architect) & Team **Divine Coders**

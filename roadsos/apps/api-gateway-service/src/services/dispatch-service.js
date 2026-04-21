@@ -4,104 +4,115 @@
  * Project: RoadSoS (IIT Madras Hackathon)
  */
 
+import jwt from 'jsonwebtoken';
+import { promises as fs } from 'fs';
+import { existsSync, readFileSync } from 'fs';
+import { join } from 'path';
 import { getEmergencyServicesFromPublicAPI } from '../routing/spatial-indexer.js';
 import { IntelligenceService } from './intelligence-service.js';
+import { ENV } from '../config/env.js';
+import { calculateDistance } from '../utils/geo-utils.js';
 
 export class DispatchService {
   constructor(io) {
     this.io = io;
+    this.STATE_FILE = join(process.cwd(), 'src/database/hot-state.json');
     this.activeEmergencies = new Map();
-    this.duplicateWindowMs = 300000; // 5 minutes window
-    this.duplicateRadiusMeters = 100; // 100m radius
+    this.responders = new Map(); 
+    this.JWT_SECRET = ENV.HF_TOKEN;
+    this.HEARTBEAT_TTL_MS = 15000;
+    this.init();
   }
 
-  /**
-   * Checks if an incoming report is a duplicate of an existing active emergency
-   */
-  isDuplicate(location) {
-    const now = Date.now();
-    for (const [id, event] of this.activeEmergencies.entries()) {
-      const timeDiff = Math.abs(now - event.timestamp);
-      
-      // Calculate basic distance (Euclidean approx for efficiency)
-      const dist = Math.sqrt(
-        Math.pow(location.lat - event.location.lat, 2) + 
-        Math.pow(location.lon - event.location.lon, 2)
-      ) * 111000; // ~111km per degree
+  async init() {
+    await this.hydrate();
+    setInterval(() => this.cleanupLiveness(), 10000);
+  }
 
-      if (timeDiff < this.duplicateWindowMs && dist < this.duplicateRadiusMeters) {
-        return event;
+  cleanupLiveness() {
+    const now = Date.now();
+    for (const [id, data] of this.responders.entries()) {
+      if (now - data.lastSeen > this.HEARTBEAT_TTL_MS * 2) {
+        this.responders.delete(id);
       }
     }
-    return null;
+  }
+
+  async hydrate() {
+    try {
+      if (existsSync(this.STATE_FILE)) {
+        const raw = readFileSync(this.STATE_FILE, 'utf8');
+        const data = JSON.parse(raw);
+        this.activeEmergencies = new Map(Object.entries(data.emergencies || {}));
+      }
+    } catch (e) { console.error("[Persistence] Hydration failed."); }
+  }
+
+  async persist() {
+    const data = JSON.stringify({
+      emergencies: Object.fromEntries(this.activeEmergencies),
+      timestamp: Date.now()
+    });
+    return fs.writeFile(this.STATE_FILE, data).catch(e => console.error("[Persistence] IO Error"));
+  }
+
+  generateGuardianLink(incidentId) {
+    const token = jwt.sign({ id: incidentId }, this.JWT_SECRET, { expiresIn: '30m' });
+    return `https://roadsos.in/v/${token}`;
+  }
+
+  calculateHeuristicETA(distance) {
+    return Math.ceil(distance / 400);
+  }
+
+  handleHeartbeat(responderId, metadata) {
+    this.responders.set(responderId, { ...metadata, state: 'ACTIVE', lastSeen: Date.now() });
   }
 
   async processSOS(crashData, analysis) {
-    // 1. DUPLICATE DETECTION (Elite Feature)
-    const existingEvent = this.isDuplicate(crashData.location);
-    if (existingEvent) {
-      console.log(`[ORCHESTRATOR] Duplicate report detected for ${existingEvent.id}. Merging reports.`);
-      this.io.emit('duplicate_report_merged', { 
-        originalId: existingEvent.id, 
-        newTimestamp: Date.now() 
-      });
-      return;
-    }
-
     const alertId = `SOS-${Date.now()}`;
-    const trafficFactor = Math.random(); 
-    
-    let alertState = {
+    const alertState = {
       id: alertId,
-      status: 'ANALYZING',
+      status: 'DISPATCHING',
       location: crashData.location,
-      analysis: analysis,
-      responders: [],
+      guardianLink: this.generateGuardianLink(alertId),
       timestamp: Date.now()
     };
 
     this.activeEmergencies.set(alertId, alertState);
+    await this.persist();
     this.updateStatus(alertState);
 
     try {
-      // 2. RESOURCE DISCOVERY
-      const allResponders = await getEmergencyServicesFromPublicAPI(
-        crashData.location.lat, 
-        crashData.location.lon
-      );
-
-      // 3. MULTI-AGENT COORDINATION
-      const categories = ['hospital', 'police', 'towing', 'puncture'];
-      const coordinatedTeam = [];
-
-      categories.forEach(cat => {
-        const available = allResponders.filter(r => r.category === cat);
-        if (available.length > 0) {
-          const scored = available.map(r => {
-            const dist = 1000; // Mock distance
-            const intel = IntelligenceService.calculatePriority(analysis, dist, trafficFactor);
-            return { ...r, ...intel };
-          }).sort((a, b) => b.score - a.score);
-
-          coordinatedTeam.push(scored[0]);
-        }
+      const allResponders = await getEmergencyServicesFromPublicAPI(crashData.location.lat, crashData.location.lon);
+      const eligible = allResponders.filter(r => {
+        const live = this.responders.get(r.id);
+        return r.status === 'AVAILABLE' && (live && Date.now() - live.lastSeen < this.HEARTBEAT_TTL_MS);
       });
 
+      const prioritized = eligible.map(r => ({
+        ...r,
+        ...IntelligenceService.calculatePriority(analysis, r),
+        eta: this.calculateHeuristicETA(r.distance)
+      })).sort((a, b) => b.score - a.score);
+
+      if (prioritized.length === 0) throw new Error("NO_RESPONDERS");
+
       alertState.status = 'DISPATCHED';
-      alertState.responders = coordinatedTeam;
-      alertState.priorityScore = coordinatedTeam[0]?.score || 50;
-      alertState.explanation = coordinatedTeam[0]?.reasoning || "Optimized dispatch active.";
+      alertState.responders = prioritized.slice(0, 1);
+      alertState.current_eta = prioritized[0].eta;
       
+      await this.persist();
       this.updateStatus(alertState);
-      
-    } catch (error) {
-      alertState.status = 'FAILED';
-      alertState.lastError = error.message;
+    } catch (e) {
+      alertState.status = 'HUMAN_ESCALATION';
+      await this.persist();
       this.updateStatus(alertState);
     }
   }
 
   updateStatus(state) {
-    this.io.emit('emergency_orchestration_update', state);
+    this.io.to(`incident_${state.id}`).emit('incident_update', state);
+    this.io.emit('emergency_orchestration_update', { id: state.id, status: state.status });
   }
 }

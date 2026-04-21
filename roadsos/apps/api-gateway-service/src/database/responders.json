@@ -1,0 +1,11 @@
+[
+  { "id": "HOSP-001", "name": "IITM Institute Hospital", "lat": 12.9912, "lon": 80.2335, "category": "hospital", "status": "AVAILABLE" },
+  { "id": "HOSP-002", "name": "Apollo Proton Cancer Centre", "lat": 12.9662, "lon": 80.2492, "category": "hospital", "status": "AVAILABLE" },
+  { "id": "HOSP-003", "name": "Fortis Malar Hospital", "lat": 13.0039, "lon": 80.2552, "category": "hospital", "status": "BUSY" },
+  { "id": "POLICE-001", "name": "Kotturpuram Police Station", "lat": 13.0135, "lon": 80.2384, "category": "police", "status": "AVAILABLE" },
+  { "id": "POLICE-002", "name": "Adyar Police Station", "lat": 13.0067, "lon": 80.2575, "category": "police", "status": "AVAILABLE" },
+  { "id": "AMB-001", "name": "GVK EMRI Ambulance 01", "lat": 12.9900, "lon": 80.2300, "category": "ambulance", "status": "AVAILABLE" },
+  { "id": "AMB-002", "name": "GVK EMRI Ambulance 02", "lat": 13.0000, "lon": 80.2400, "category": "ambulance", "status": "AVAILABLE" },
+  { "id": "TOW-001", "name": "IITM Towing Services", "lat": 12.9920, "lon": 80.2340, "category": "towing", "status": "AVAILABLE" },
+  { "id": "PUNC-001", "name": "Velachery Tyre Care", "lat": 12.9800, "lon": 80.2200, "category": "puncture", "status": "AVAILABLE" }
+]
