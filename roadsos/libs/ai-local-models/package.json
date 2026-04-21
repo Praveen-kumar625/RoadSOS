@@ -1,0 +1,10 @@
+{
+  "name": "@roadsos/ai-local-models",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "main": "src/index.js",
+  "dependencies": {
+    "@huggingface/inference": "^2.6.4"
+  }
+}

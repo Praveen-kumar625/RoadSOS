@@ -1,5 +1,1 @@
-/**
- * Team Name: Divine coder
- * Team Lead: Praveen kumar
- * File: tools/evals/metrics/hallucination-detector.js
- */
+export const detectHallucination = () => {};

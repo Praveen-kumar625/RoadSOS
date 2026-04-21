@@ -1,5 +1,1 @@
-/**
- * Team Name: Divine coder
- * Team Lead: Praveen kumar
- * File: apps/api-gateway-service/src/database/queries/ambulance.queries.js
- */
+export const getAmbulances = 'SELECT * FROM ambulances...';

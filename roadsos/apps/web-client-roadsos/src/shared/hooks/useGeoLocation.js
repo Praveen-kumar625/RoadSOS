@@ -1,5 +1,1 @@
-/**
- * Team Name: Divine coder
- * Team Lead: Praveen kumar
- * File: apps/web-client-roadsos/src/shared/hooks/useGeoLocation.js
- */
+export const useGeoLocation = () => ({ lat: 0, lng: 0 });

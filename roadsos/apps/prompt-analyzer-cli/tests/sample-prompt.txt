@@ -1,0 +1,1 @@
+You are a senior React developer. Write a custom hook that fetches data from an API and handles loading and error states. Return the data, loading boolean, and error object.

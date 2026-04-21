@@ -1,0 +1,9 @@
+{
+  "name": "@roadsos/tools",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "security-audit": "node security/sast/static-analyzer.js && node evals/prompt-bench/harness.js"
+  }
+}

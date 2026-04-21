@@ -1,5 +1,1 @@
-/**
- * Team Name: Divine coder
- * Team Lead: Praveen kumar
- * File: apps/web-client-roadsos/src/app/layout.jsx
- */
+export default function Layout({children}) { return <html><body>{children}</body></html>; }

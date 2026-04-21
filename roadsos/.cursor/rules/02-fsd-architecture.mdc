@@ -1,0 +1,6 @@
+---
+description: FEATURE-SLICED DESIGN (FSD) ARCHITECTURAL BOUNDARIES
+globs: "apps/**/*,libs/**/*"
+---
+# 02-fsd-architecture
+Adhere to the Feature-Sliced Design (FSD) hierarchy.

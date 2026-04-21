@@ -1,5 +1,1 @@
-/**
- * Team Name: Divine coder
- * Team Lead: Praveen kumar
- * File: libs/core-types/src/errors/http.error.js
- */
+export class HttpError extends Error { constructor(msg, status) { super(msg); this.status = status; } }

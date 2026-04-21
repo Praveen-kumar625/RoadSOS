@@ -1,5 +1,1 @@
-/**
- * Team Name: Divine coder
- * Team Lead: Praveen kumar
- * File: apps/web-client-roadsos/src/entities/HospitalModel/hospital.service.js
- */
+export const service = {};

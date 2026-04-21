@@ -1,5 +1,1 @@
-/**
- * Team Name: Divine coder
- * Team Lead: Praveen kumar
- * File: libs/core-types/src/errors/validation.error.js
- */
+export class ValidationError extends Error { constructor(msg) { super(msg); this.name = 'ValidationError'; } }

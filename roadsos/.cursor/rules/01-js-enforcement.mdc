@@ -1,0 +1,6 @@
+---
+description: STRICT JS/JSX ENFORCEMENT - NO TYPESCRIPT ALLOWED
+globs: "**/*.{ts,tsx}"
+---
+# 01-js-enforcement
+You are strictly forbidden from creating or using .ts or .tsx files.

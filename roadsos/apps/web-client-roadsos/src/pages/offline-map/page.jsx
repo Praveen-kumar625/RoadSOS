@@ -1,5 +1,1 @@
-/**
- * Team Name: Divine coder
- * Team Lead: Praveen kumar
- * File: apps/web-client-roadsos/src/pages/offline-map/page.jsx
- */
+export default function OfflineMap() { return <div>Map</div>; }

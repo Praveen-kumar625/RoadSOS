@@ -1,5 +1,1 @@
-/**
- * Team Name: Divine coder
- * Team Lead: Praveen kumar
- * File: apps/web-client-roadsos/src/app/providers.jsx
- */
+export const Providers = ({children}) => <>{children}</>;

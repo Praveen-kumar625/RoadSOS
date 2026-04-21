@@ -1,0 +1,31 @@
+{
+  "name": "roadsos",
+  "version": "1.0.0",
+  "private": true,
+  "description": "RoadSoS National Road Safety Hackathon 2026 - Master Monorepo",
+  "author": "Praveen kumar (Divine coder)",
+  "license": "Apache-2.0",
+  "type": "module",
+  "workspaces": [
+    "apps/*",
+    "libs/*",
+    "tools/*"
+  ],
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "scripts": {
+    "dev": "turbo run dev",
+    "build": "turbo run build",
+    "test": "turbo run test",
+    "lint": "turbo run lint",
+    "clean": "turbo run clean",
+    "security-audit": "npm run security-audit --workspace=tools",
+    "analyze-prompt": "bun run --workspace=@roadsos/prompt-analyzer-cli start"
+  },
+  "devDependencies": {
+    "turbo": "^1.12.4",
+    "eslint": "^8.56.0",
+    "prettier": "^3.2.4"
+  }
+}

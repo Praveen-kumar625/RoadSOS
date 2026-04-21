@@ -1,5 +1,1 @@
-/**
- * Team Name: Divine coder
- * Team Lead: Praveen kumar
- * File: apps/api-gateway-service/src/api/routes/compliance.routes.js
- */
+import { Router } from 'express'; export const complianceRouter = Router();

@@ -1,5 +1,1 @@
-/**
- * Team Name: Divine coder
- * Team Lead: Praveen kumar
- * File: libs/core-types/src/errors/domain.error.js
- */
+export class DomainError extends Error { constructor(msg) { super(msg); this.name = 'DomainError'; } }

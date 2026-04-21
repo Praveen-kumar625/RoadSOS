@@ -1,0 +1,1 @@
+export const EmergencyAlertBanner = () => <div>Alert</div>;

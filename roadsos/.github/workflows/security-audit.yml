@@ -1,0 +1,31 @@
+# Team Name: Divine coder
+# Team Lead: Praveen kumar
+# Project: RoadSoS (IIT Madras Hackathon)
+
+name: "DevSecOps - OWASP & SAST Audit"
+on: [push, pull_request]
+
+jobs:
+  security-scan:
+    name: Advanced Security Audit
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      - name: Setup Node.js (JS Enforcement)
+        uses: actions/setup-node@v3
+        with:
+          node-version: '20'
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Run NPM Audit (OWASP Dependency Check)
+        run: npm audit --audit-level=high
+
+      - name: Execute Custom SAST (Static Analyzer)
+        run: node tools/security/sast/static-analyzer.js
+
+      - name: Evaluate LLM Prompt Injection Defenses
+        run: node tools/evals/prompt-bench/harness.js

@@ -1,5 +1,1 @@
-/**
- * Team Name: Divine coder
- * Team Lead: Praveen kumar
- * File: apps/api-gateway-service/src/config/environment.config.js
- */
+export const envConfig = {};

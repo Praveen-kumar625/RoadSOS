@@ -1,5 +1,1 @@
-/**
- * Team Name: Divine coder
- * Team Lead: Praveen kumar
- * File: libs/core-types/src/schemas/user.schema.js
- */
+import { z } from 'zod'; export const UserSchema = z.object({});

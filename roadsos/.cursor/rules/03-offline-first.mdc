@@ -1,0 +1,6 @@
+---
+description: OFFLINE-FIRST RELIABILITY & CACHING MANDATE
+globs: "apps/**/*.{js,jsx}"
+---
+# 03-offline-first
+RoadSoS must operate in low-connectivity environments.

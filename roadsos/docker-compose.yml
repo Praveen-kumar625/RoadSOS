@@ -1,0 +1,30 @@
+/**
+ * Team Name: Divine coder
+ * Team Lead: Praveen kumar
+ * Project: RoadSoS (IIT Madras Hackathon)
+ */
+
+version: '3.8'
+
+services:
+  api-gateway:
+    build: ./apps/api-gateway-service
+    ports:
+      - "5000:5000"
+    environment:
+      - PORT=5000
+      - HF_TOKEN=${HF_TOKEN}
+
+  web-client:
+    build: ./apps/web-client-roadsos
+    ports:
+      - "3000:3000"
+    depends_on:
+      - api-gateway
+
+  edge-simulator:
+    build: ./apps/edge-iot-firmware
+    depends_on:
+      - api-gateway
+    environment:
+      - GATEWAY_URL=http://api-gateway:5000/api/v1/ingestion/crash

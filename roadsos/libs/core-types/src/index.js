@@ -1,5 +1,7 @@
 /**
  * Team Name: Divine coder
  * Team Lead: Praveen kumar
- * File: libs/core-types/src/index.js
+ * Project: RoadSoS (IIT Madras Hackathon)
  */
+
+export * from './schemas/crash-event.schema.js';

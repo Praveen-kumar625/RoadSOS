@@ -1,5 +1,1 @@
-/**
- * Team Name: Divine coder
- * Team Lead: Praveen kumar
- * File: apps/api-gateway-service/src/api/middlewares/error-handler.js
- */
+export const errorHandler = (err, req, res, next) => res.status(500).send();

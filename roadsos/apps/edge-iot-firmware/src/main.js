@@ -1,5 +1,7 @@
 /**
  * Team Name: Divine coder
  * Team Lead: Praveen kumar
- * File: apps/edge-iot-firmware/src/main.js
+ * Project: RoadSoS (IIT Madras Hackathon)
  */
+
+import './sensor-sim.js';
