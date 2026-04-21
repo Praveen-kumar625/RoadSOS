@@ -14,3 +14,4 @@ export * from './ambulance.schema.js';
 export * from './hospital.schema.js';
 export * from './route.schema.js';
 export * from './user.schema.js';
+export * from './sos-alert.schema.js';

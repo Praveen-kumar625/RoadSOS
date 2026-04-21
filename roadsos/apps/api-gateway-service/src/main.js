@@ -11,55 +11,65 @@ import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import cors from 'cors';
 import { analyzeCrashWithOpenLLM } from './ingestion/crash-event-ingestion.js';
-import { getHospitalsFromPublicAPI } from './routing/spatial-indexer.js';
+import { DispatchService } from './services/dispatch-service.js';
 
 const app = express();
 const httpServer = createServer(app);
 const io = new Server(httpServer, { cors: { origin: '*' } });
 
-// OWASP Security Hardening (from Security Auditor/Hacker skills)
+// Business Logic Orchestrator
+const dispatcher = new DispatchService(io);
+
+// OWASP Security Hardening
 app.use(helmet());
 app.use(cors());
 app.use(express.json({ limit: '1mb' }));
 
-// Rate Limiting
+// Rate Limiting to prevent abuse
 app.use('/api/', rateLimit({ windowMs: 15 * 60 * 1000, max: 100 }));
 
 io.on('connection', (socket) => {
   console.log('[Socket] Client connected: ' + socket.id);
 });
 
+/**
+ * PRODUCTION-GRADE INGESTION ENDPOINT
+ * Shifted from "Direct Call" to "Event Orchestration"
+ */
 app.post('/api/v1/ingestion/crash', async (req, res) => {
   const { telemetry, location, timestamp } = req.body;
-  if (!telemetry || !location) return res.status(400).json({ error: 'Missing telemetry' });
+  
+  // 1. Structural Validation
+  if (!telemetry || !location) {
+    return res.status(400).json({ error: 'Schema Validation Failed: Missing telemetry/location' });
+  }
 
+  // 2. Immediate Feedback to Dashboard
   io.emit('live_telemetry', { telemetry, location, timestamp });
 
   try {
-    // Open-LLM Analysis (Inspired by eugeneyan/open-llms)
+    // 3. AI Severity Prediction (Aegis-Core)
     const analysis = await analyzeCrashWithOpenLLM(telemetry);
     io.emit('ai_analysis', analysis);
 
+    // 4. Trigger the Resilient Dispatch Lifecycle
     if (analysis.isCrash && analysis.severity === 'CRITICAL') {
-      // Public API Integration
-      const hospitals = await getHospitalsFromPublicAPI(location.lat, location.lon);
+      // Non-blocking background process to handle retries and state changes
+      dispatcher.processSOS({ telemetry, location, timestamp }, analysis);
       
-      const alert = {
-        alert_id: 'SOS-' + Date.now(),
+      return res.status(202).json({ 
+        message: 'SOS_ACCEPTED', 
         analysis,
-        dispatched_to: hospitals[0] || { name: 'Fallback Trauma Center' },
-        timestamp: new Date().toISOString()
-      };
-      io.emit('emergency_alert', alert);
-      return res.status(200).json(alert);
+        tracking_id: 'SOS-' + Date.now() 
+      });
     }
     
     res.status(200).json({ status: 'NOMINAL', analysis });
   } catch (err) {
-    console.error('[Ingestion Error]', err);
-    res.status(500).json({ error: 'Internal server error' });
+    console.error('[GATEWAY_FATAL]', err);
+    res.status(500).json({ error: 'Emergency processing engine failure' });
   }
 });
 
 const PORT = process.env.PORT || 5000;
-httpServer.listen(PORT, () => console.log('[Aegis-Core Gateway] Online on port ' + PORT));
+httpServer.listen(PORT, () => console.log('🚀 [RoadSoS Gateway] Production-ready on port ' + PORT));
