@@ -1,5 +1,13 @@
 /**
  * Team Name: Divine coder
  * Team Lead: Praveen kumar
- * File: apps/api-gateway-service/jest.config.js
+ * Project: RoadSoS (IIT Madras Hackathon)
  */
+
+export default {
+  transform: {},
+  testEnvironment: 'node',
+  moduleNameMapper: {
+    '^(\\.{1,2}/.*)\\.js$': '$1',
+  }
+};

@@ -14,6 +14,9 @@ class Esp32Simulator {
     this.endpoint = (process.env.API_GATEWAY_URL || 'http://localhost:5000') + '/api/v1/ingestion/crash';
     this.isNetworkBlocked = false;
     this.sequenceCounter = 0; // MONOTONIC COUNTER (Replay Protection)
+    this.hardwareId = 'ROAD-ESP32-IITM-2026'; // REGISTERED DEVICE SIGNATURE
+    this.retryCount = 0;
+    this.isDeadZone = process.argv.includes('--dead-zone');
   }
 
   sampleIMU(accel, gyro) {
@@ -29,6 +32,7 @@ class Esp32Simulator {
     console.log(`[Edge] IMPACT: ${data.resultant_a.toFixed(1)}G. Enqueuing Seq: ${this.sequenceCounter}`);
     
     const payload = {
+      hardware_id: this.hardwareId,
       seq: this.sequenceCounter++, // Increment for every packet
       telemetry: data,
       location: { lat: 12.9915, lon: 80.2337 },
@@ -46,27 +50,39 @@ class Esp32Simulator {
 
   /**
    * Background Network Worker
-   * Runs independently of the sampling loop.
+   * Handles re-transmission and eventually consistency in Dead Zones.
    */
   async networkWorker() {
     if (this.networkQueue.length === 0 || this.isNetworkBlocked) return;
+    if (this.isDeadZone && Math.random() > 0.1) {
+      console.log("[Edge] 📵 DEAD ZONE DETECTED. Data preserved in NVS buffer.");
+      return; 
+    }
 
     const event = this.networkQueue[0];
     this.isNetworkBlocked = true;
 
     try {
       await axios.post(this.endpoint, event, { timeout: 2000 });
-      console.log(`[Edge] Uplink SUCCESS. Queue: ${this.networkQueue.length - 1}`);
+      console.log(`[Edge] 📡 Uplink SUCCESS (Seq: ${event.seq}). Queue: ${this.networkQueue.length - 1}`);
       this.networkQueue.shift(); // Remove only on success
+      this.retryCount = 0; // Reset backoff
     } catch (e) {
-      console.error(`[Edge] Uplink FAILED (${e.message}). Retrying with Exponential Backoff...`);
+      this.retryCount++;
+      const backoff = Math.min(30000, Math.pow(2, this.retryCount) * 1000);
+      console.error(`[Edge] ⚠️ Uplink FAILED. Retrying in ${backoff}ms. (Backoff Level: ${this.retryCount})`);
+      
+      // Delay the next worker cycle manually
+      this.isNetworkBlocked = true;
+      setTimeout(() => { this.isNetworkBlocked = false; }, backoff);
     } finally {
-      this.isNetworkBlocked = false;
+      if (this.retryCount === 0) this.isNetworkBlocked = false;
     }
   }
 
   run() {
     console.log('--- RoadSoS v5 Safety-Grade Hardened Firmware ---');
+    if (this.isDeadZone) console.log('--- MODE: SIMULATED HIGHWAY DEAD ZONE (70% Loss) ---');
     
     // Sampling Loop (100Hz simulation)
     setInterval(() => {

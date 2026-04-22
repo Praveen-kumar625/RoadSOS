@@ -2,6 +2,7 @@
   "name": "roadsos",
   "version": "1.0.0",
   "private": true,
+  "packageManager": "npm@10.2.4",
   "description": "RoadSoS National Road Safety Hackathon 2026 - Master Monorepo",
   "author": "Praveen kumar (Divine coder)",
   "license": "Apache-2.0",

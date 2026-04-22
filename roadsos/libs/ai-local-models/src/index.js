@@ -5,35 +5,45 @@
  */
 
 import { HfInference } from '@huggingface/inference';
+import { TemporalAegisGRU } from './inference/gru-inference.js';
 
 export class AegisCoreAI {
   constructor(token) {
     this.hf = new HfInference(token || 'dummy_token');
     this.model = 'Qwen/Qwen2.5-7B-Instruct';
+    this.gru = new TemporalAegisGRU();
   }
 
-  async analyze(telemetry) {
+  /**
+   * ADVANCED MULTI-MODAL ANALYSIS
+   * Combines Temporal GRU inference with LLM reasoning.
+   */
+  async analyze(telemetry, history = []) {
     const start = Date.now();
     
-    // 1. DETERMINISTIC RULE-BASED ANALYSIS (Primary)
-    // Using standard G-force impact thresholds for road safety
-    const maxG = Math.max(
-      Math.abs(telemetry.accelerometer?.x || 0), 
-      Math.abs(telemetry.accelerometer?.y || 0)
-    );
+    // 1. TEMPORAL GRU INFERENCE (Core AI Logic)
+    // We analyze the sequence of forces (Current + Last 5 from history)
+    const sequence = [...history.map(h => h.resultant_a), telemetry.resultant_a].slice(-6);
+    const temporalAnalysis = this.gru.analyzeSequence(sequence);
     
     let result = {
-      isCrash: maxG > 12, // Standard threshold for high-impact collision
-      severity: maxG > 15 ? 'CRITICAL' : (maxG > 8 ? 'MODERATE' : 'NOMINAL'),
-      confidence: 0.9,
-      isFallback: false,
-      method: 'RULE_BASED'
+      isCrash: temporalAnalysis.isAnomalous,
+      severity: temporalAnalysis.severityScore > 0.8 ? 'CRITICAL' : (temporalAnalysis.severityScore > 0.5 ? 'MODERATE' : 'NOMINAL'),
+      confidence: temporalAnalysis.confidence,
+      method: 'GRU_TEMPORAL_ANALYSIS',
+      ai_metadata: {
+        layer: 'Recurrent Neural Network (GRU)',
+        input_dim: sequence.length,
+        normalized_score: temporalAnalysis.severityScore.toFixed(4)
+      }
     };
 
-    // 2. AI ENHANCEMENT (Optional)
+    // 2. LLM ENRICHMENT (Reasoning Layer)
     try {
-      const prompt = `<system>You are Aegis-Core. Analyze telemetry for vehicular crash detection. Format: JSON only.</system>
-      <telemetry>${JSON.stringify(telemetry)}</telemetry>`;
+      const prompt = `<system>You are Aegis-Core, a safety-critical AI. Analyze this crash signature.
+      Context: ${result.severity} impact detected via GRU model.
+      Data: ${JSON.stringify(telemetry)}</system>
+      Return JSON: { "explanation": "string", "recommended_action": "string", "victim_status_prediction": "string" }`;
 
       const res = await this.hf.textGeneration({
         model: this.model,
@@ -43,17 +53,15 @@ export class AegisCoreAI {
       
       const aiResponse = this.parseCleanJson(res.generated_text);
       if (aiResponse) {
-        // AI detected something more subtle or confirmed the rule
         result = { 
           ...result, 
           ...aiResponse, 
-          method: 'AI_ENHANCED',
+          method: 'HYBRID_AI_ORCHESTRATION',
           latency: Date.now() - start 
         };
       }
     } catch (err) {
-      console.warn("[Aegis AI] Model unavailable, proceeding with Rule-Based logic.");
-      result.isFallback = true;
+      result.method = 'GRU_ONLY (Offline Fallback)';
     }
 
     result.latency = Date.now() - start;

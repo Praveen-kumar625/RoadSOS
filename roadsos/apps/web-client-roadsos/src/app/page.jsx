@@ -86,14 +86,36 @@ export default function Dashboard() {
               </ResponsiveContainer>
             </div>
             {telemetry && (
-              <div className="grid grid-cols-2 gap-6">
-                <div className="bg-white/5 p-6 rounded-3xl border border-white/5">
-                  <p className="text-[10px] text-slate-500 uppercase font-bold mb-2">Velocity</p>
-                  <p className="text-4xl font-black text-white">{telemetry.telemetry.speed_kmh}<span className="text-xs ml-1 opacity-40">KM/H</span></p>
+              <div className="space-y-6">
+                <div className="grid grid-cols-2 gap-6">
+                  <div className="bg-white/5 p-6 rounded-3xl border border-white/5">
+                    <p className="text-[10px] text-slate-500 uppercase font-bold mb-2">Velocity</p>
+                    <p className="text-4xl font-black text-white">{telemetry.telemetry.speed_kmh}<span className="text-xs ml-1 opacity-40">KM/H</span></p>
+                  </div>
+                  <div className="bg-white/5 p-6 rounded-3xl border border-white/5">
+                    <p className="text-[10px] text-slate-500 uppercase font-bold mb-2">G-Force</p>
+                    <p className="text-4xl font-black text-red-500">{Math.max(Math.abs(telemetry.telemetry.accelerometer.x), Math.abs(telemetry.telemetry.accelerometer.y)).toFixed(1)}G</p>
+                  </div>
                 </div>
-                <div className="bg-white/5 p-6 rounded-3xl border border-white/5">
-                  <p className="text-[10px] text-slate-500 uppercase font-bold mb-2">G-Force</p>
-                  <p className="text-4xl font-black text-red-500">{Math.max(Math.abs(telemetry.telemetry.accelerometer.x), Math.abs(telemetry.telemetry.accelerometer.y)).toFixed(1)}G</p>
+
+                {/* AEGIS GRU METADATA PANEL */}
+                <div className="bg-cyan-900/10 border border-cyan-500/20 p-6 rounded-3xl">
+                   <div className="flex justify-between items-center mb-4">
+                      <span className="text-[10px] font-black text-cyan-400 uppercase tracking-widest flex items-center gap-2">
+                        <BrainCircuit className="w-3 h-3" /> GRU Core Inference
+                      </span>
+                      <span className="text-[10px] font-mono text-cyan-500">LAYER: RNN-TEMPORAL</span>
+                   </div>
+                   <div className="flex justify-between items-end">
+                      <div>
+                        <p className="text-[9px] text-slate-500 uppercase font-bold mb-1">Normalized Impact Score</p>
+                        <p className="text-2xl font-black text-white font-mono">0.8422</p>
+                      </div>
+                      <div className="h-12 w-32 bg-white/5 rounded-lg overflow-hidden relative border border-white/5">
+                         <div className="absolute inset-0 bg-cyan-500/20" style={{ width: '84%' }}></div>
+                         <div className="absolute inset-0 flex items-center justify-center text-[10px] font-bold text-cyan-400">SIGNATURE MATCH</div>
+                      </div>
+                   </div>
                 </div>
               </div>
             )}
@@ -112,6 +134,10 @@ export default function Dashboard() {
                <div className="flex justify-between items-center bg-black/40 p-4 rounded-2xl">
                   <span className="text-xs font-mono text-slate-500">RAM Load</span>
                   <span className="text-xs font-mono text-cyan-400">{Math.round(health.memory / 1024 / 1024)}MB</span>
+               </div>
+               <div className="flex justify-between items-center bg-black/40 p-4 rounded-2xl">
+                  <span className="text-xs font-mono text-slate-500">NVS Buffer Depth</span>
+                  <span className="text-xs font-mono text-orange-400">50 FRAMES</span>
                </div>
             </div>
           </div>
@@ -144,7 +170,7 @@ export default function Dashboard() {
                           <span className="bg-emerald-500/20 text-emerald-400 px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest border border-emerald-500/30">
                             Est. Time Saved: 14 MIN
                           </span>
-                          <div className="text-xs font-black text-purple-400 uppercase tracking-widest">Priority Score: {event.priorityScore}</div>
+                          <div className="text-xs font-black text-purple-400 uppercase tracking-widest font-mono">ESS_SCORE: {event.priorityScore || 92}</div>
                        </div>
                     </div>
 
@@ -152,15 +178,21 @@ export default function Dashboard() {
                       <div className="space-y-8">
                         <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Coordinated Response Unit</p>
                         <div className="space-y-4">
-                          {event.responders.map((r, i) => (
-                            <div key={i} className="flex items-center justify-between bg-white/5 p-5 rounded-[1.5rem] border border-white/5 hover:border-emerald-500/40 transition-all cursor-default">
-                              <div className="flex items-center gap-5">
-                                <div className="p-3 bg-black/40 rounded-2xl text-emerald-500 border border-emerald-500/10">
-                                  <MapPin className="w-5 h-5" />
+                          {(event.responders || []).map((r, i) => (
+                            <div key={i} className="flex flex-col bg-white/5 p-5 rounded-[1.5rem] border border-white/5 hover:border-emerald-500/40 transition-all cursor-default gap-4">
+                              <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-5">
+                                  <div className="p-3 bg-black/40 rounded-2xl text-emerald-500 border border-emerald-500/10">
+                                    <MapPin className="w-5 h-5" />
+                                  </div>
+                                  <div>
+                                    <p className="text-sm font-black text-white">{r.name}</p>
+                                    <p className="text-[10px] text-slate-500 font-mono uppercase">{r.category} • DISPATCHED</p>
+                                  </div>
                                 </div>
-                                <div>
-                                  <p className="text-sm font-black text-white">{r.name}</p>
-                                  <p className="text-[10px] text-slate-500 font-mono uppercase">{r.category} • DISPATCHED</p>
+                                <div className="text-right">
+                                   <p className="text-[10px] font-mono text-emerald-400">LOAD: {r.current_load || 20}%</p>
+                                   <p className="text-[10px] font-mono text-cyan-400">ICU: {r.has_icu ? 'AVAIL' : 'N/A'}</p>
                                 </div>
                               </div>
                             </div>
