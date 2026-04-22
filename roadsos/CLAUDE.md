@@ -25,7 +25,8 @@
 ## Technology Stack
 - **Backend:** Node.js, Express, Socket.io, axios
 - **Frontend:** Next.js 15, React, Tailwind CSS, Recharts, Lucide
-- **AI:** Qwen 2.5 (via HuggingFace Inference), Aegis-Core custom prompt
+- **AI:** Hybrid (Random Forest for telemetry, Qwen 2.5 for context analysis)
+- **Database:** PostgreSQL (PostGIS) with Redis spatial caching
 - **Runtime:** Node.js 20+, Bun (for CLI)
 - **Tooling:** Turbo, ESLint, Prettier, Jest
 

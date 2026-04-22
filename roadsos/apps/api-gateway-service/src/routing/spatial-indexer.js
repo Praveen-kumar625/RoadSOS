@@ -10,14 +10,31 @@ import { join } from 'path';
 import { calculateDistance } from '../utils/geo-utils.js';
 
 /**
+ * Redis-backed Spatial Cache (Simulation)
+ * In production, this would use a real Redis client with EXPIRE.
+ */
+const spatialCache = new Map();
+
+/**
  * Helper to fetch from Overpass API with a specific query
  */
 async function fetchFromOverpass(query) {
+  // Check cache first
+  const cacheKey = `osm_query:${Buffer.from(query).toString('base64')}`;
+  if (spatialCache.has(cacheKey)) {
+    console.log("[Spatial Cache] Cache Hit for OSM Data");
+    return spatialCache.get(cacheKey);
+  }
+
   try {
     const response = await axios.post('https://overpass-api.de/api/interpreter', `[out:json][timeout:15];(${query});out center;`, {
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
     });
-    return response.data?.elements || [];
+    const elements = response.data?.elements || [];
+    
+    // Store in cache (simulation of Redis EXPIRE 3600)
+    spatialCache.set(cacheKey, elements);
+    return elements;
   } catch (error) {
     console.warn("[Overpass API Fallback Error]", error.message);
     return [];
@@ -57,7 +74,9 @@ export async function getEmergencyServices(lat, lon, radius = 5000) {
   console.log("[Spatial Indexer] No local responders found in radius. Falling back to public API.");
   const categories = [
     { name: 'police', query: `node["amenity"="police"](around:${radius},${lat},${lon});way["amenity"="police"](around:${radius},${lat},${lon});` },
-    { name: 'hospital', query: `node["amenity"="hospital"](around:${radius},${lat},${lon});way["amenity"="hospital"](around:${radius},${lat},${lon});` }
+    { name: 'hospital', query: `node["amenity"="hospital"](around:${radius},${lat},${lon});way["amenity"="hospital"](around:${radius},${lat},${lon});` },
+    { name: 'puncture_shop', query: `node["shop"="tyres"](around:${radius},${lat},${lon});` },
+    { name: 'showroom', query: `node["shop"="car"](around:${radius},${lat},${lon});node["shop"="motorcycle"](around:${radius},${lat},${lon});` }
   ];
 
   try {

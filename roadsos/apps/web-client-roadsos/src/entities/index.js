@@ -11,3 +11,5 @@ export * from './CrashEventModel/crash-event.service.js';
 export * from './PoliceModel/police.service.js';
 export * from './TowingModel/towing.service.js';
 export * from './ServiceStationModel/service-station.service.js';
+export * from './PunctureShopModel/puncture-shop.service.js';
+export * from './ShowroomModel/showroom.service.js';

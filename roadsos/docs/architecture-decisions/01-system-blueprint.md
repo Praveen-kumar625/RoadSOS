@@ -19,7 +19,9 @@ graph TD
         Gateway[Node.js API Gateway] -->|Validate| Zod[Zod Schema Validation]
         Zod -->|Queue| Redis[Event Queue/Redis]
         Redis -->|Process| Dispatcher[Dispatch Service]
-        Dispatcher -->|Analyze| AI[Aegis-Core AI Qwen 2.5]
+        Dispatcher -->|Analyze| AI[Hybrid AI: RF + Qwen 2.5]
+        AI -->|Low Latency| RF[Random Forest: Telemetry]
+        AI -->|Context| LLM[Qwen 2.5: Report Analysis]
     end
 
     subgraph Service_Orchestration [Emergency State Machine]

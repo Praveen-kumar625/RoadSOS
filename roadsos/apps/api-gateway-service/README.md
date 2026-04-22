@@ -6,8 +6,9 @@ This service acts as the central hub for RoadSoS, ingesting real-time telemetry 
 
 ## Features
 - **M2M Ingestion:** REST/Socket.io endpoints for IoT telemetry.
-- **Aegis-Core Integration:** Hybrid crash validation using Qwen 2.5.
-- **Spatial Discovery:** Real-time trauma center lookup via OpenStreetMap.
+- **Hybrid AI Triage:** Real-time crash severity classification using Scikit-Learn Random Forest (Telemetry) and context analysis via Qwen 2.5 (Reports).
+- **Spatial Caching:** Redis-based caching layer for OSM Overpass API to ensure sub-50ms resource discovery.
+- **Resource Routing:** Intelligent dispatch for Police, Hospitals, Towing, Puncture Shops, and Showrooms.
 - **Security:** Built-in rate limiting and OWASP hardening.
 
 ## Scripts

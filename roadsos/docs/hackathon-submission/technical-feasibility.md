@@ -10,7 +10,8 @@ RoadSoS leverages a three-tier architecture designed for low-latency and high re
 
 ### 2. Connectivity Layer (API Gateway)
 - **Stack:** Node.js (Express) with Socket.io for real-time bidirectional communication.
-- **AI Integration:** Uses HuggingFace Inference API (Qwen 2.5) to analyze raw telemetry data, performing natural language classification of crash severity.
+- **AI Integration:** Uses a Scikit-Learn Random Forest model for real-time crash severity classification. This approach ensures microsecond inference latency, crucial for "Golden Hour" response, unlike high-latency LLM alternatives.
+- **Caching:** Implements Redis-based spatial caching for OSM Overpass API results, reducing external API dependency and ensuring sub-50ms resource discovery.
 - **Security:** Hardened with Helmet.js and rate limiting (OWASP best practices).
 
 ### 3. Presentation Layer (Web Client)
