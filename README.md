@@ -72,7 +72,7 @@ The system utilizes a multi-layered mesh to isolate failures and ensure high ava
 | :--- | :--- | :--- | :--- |
 | **Network Loss** | Uplink ACK timeout | Local buffering in NVS | Delayed sync via SMS/Fallback |
 | **Responder Silent** | Heartbeat TTL expiry | Emit `RESPONDER_SILENT` | Auto-failover to backup unit |
-| **Process Crash** | OS signal | `hydrate()` hook on boot | Restore state from `hot-state.json` |
+| **Process Crash** | OS signal | `hydrate()` hook on boot | Restore state from distributed Redis Streams |
 | **Routing Failure** | API Timeout/404 | Tier-1 Heuristic Fallback | Dispatch via Euclidean + Urban Heuristic |
 | **Security Breach** | Invalid JWT / Replay | Socket Disconnection | Immediate unauthorized access block |
 

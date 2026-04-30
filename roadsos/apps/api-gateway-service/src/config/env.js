@@ -7,6 +7,7 @@
 
 import { z } from 'zod';
 import { config } from 'dotenv';
+import { vaultService } from '../services/vault-service.js';
 
 // Auto-load .env for local development fallback
 config();
@@ -41,21 +42,33 @@ const envSchema = z.object({
 });
 
 /**
- * Validates and exports the hardened configuration.
+ * PRODUCTION READY CONFIG EXPORTER
+ * Injected with Vault secrets if available.
  */
-const _env = envSchema.safeParse({
-  ...process.env,
-  // Mapping provided production credentials for the Greenfield build
-  SUPABASE_URL: 'https://raeiaewxsdxgzumyafiw.supabase.co',
-  UPSTASH_REDIS_REST_URL: 'https://enough-sheep-82324.upstash.io',
-  UPSTASH_REDIS_REST_TOKEN: 'gQAAAAAAAUGUAAIgcDIyOTVjZTFmOGI3NGY0OGJkYTBkYWI5MzQ1M2YyZDBiNg',
-  REDIS_URL: 'rediss://default:gQAAAAAAAUGUAAIgcDIyOTVjZTFmOGI3NGY0OGJkYTBkYWI5MzQ1M2YyZDBiNg@enough-sheep-82324.upstash.io:6379'
-});
+export const loadHardenedConfig = async () => {
+  const vaultSecrets = await vaultService.getSecrets();
+  
+  const config = {
+    ...process.env,
+    ...vaultSecrets,
+    // Baseline hardcoded production endpoints (to be moved to Vault in next pass)
+    SUPABASE_URL: vaultSecrets.SUPABASE_URL || 'https://raeiaewxsdxgzumyafiw.supabase.co',
+    UPSTASH_REDIS_REST_URL: vaultSecrets.UPSTASH_REDIS_REST_URL || 'https://enough-sheep-82324.upstash.io',
+    UPSTASH_REDIS_REST_TOKEN: vaultSecrets.UPSTASH_REDIS_REST_TOKEN || 'gQAAAAAAAUGUAAIgcDIyOTVjZTFmOGI3NGY0OGJkYTBkYWI5MzQ1M2YyZDBiNg',
+    REDIS_URL: vaultSecrets.REDIS_URL || 'rediss://default:gQAAAAAAAUGUAAIgcDIyOTVjZTFmOGI3NGY0OGJkYTBkYWI5MzQ1M2YyZDBiNg@enough-sheep-82324.upstash.io:6379'
+  };
 
-if (!_env.success) {
-  console.error('❌ [CRITICAL] Environment Validation Failed:', JSON.stringify(_env.error.format(), null, 2));
-  process.exit(1);
-}
+  const _env = envSchema.safeParse(config);
 
-export const ENV = _env.data;
+  if (!_env.success) {
+    console.error('❌ [CRITICAL] Environment Validation Failed:', JSON.stringify(_env.error.format(), null, 2));
+    process.exit(1);
+  }
+
+  return _env.data;
+};
+
+// Initial stub for legacy sync imports - will be populated by startServer()
+export let ENV = {};
+export const setGlobalEnv = (data) => { ENV = data; };
 export default ENV;

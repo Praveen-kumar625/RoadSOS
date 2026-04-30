@@ -10,12 +10,13 @@ class RoadSoSFirmware {
   constructor() {
     this.uplink = new RobustUplink(
       'ROAD-X-001', 
-      process.env.API_GATEWAY_URL || 'http://localhost:5000'
+      process.env.GATEWAY_UDP_HOST || 'localhost',
+      parseInt(process.env.GATEWAY_UDP_PORT || '1884', 10)
     );
   }
 
   async bootstrap() {
-    console.log('--- 🛡️ RoadSoS Firmware (Production) ---');
+    console.log('--- 🛡️ RoadSoS Firmware (Production: MQTT-SN) ---');
     await this.uplink.init();
     setInterval(() => this.sampleSensors(), 100);
   }

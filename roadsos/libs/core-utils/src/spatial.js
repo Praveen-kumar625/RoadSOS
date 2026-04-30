@@ -6,33 +6,33 @@
  * H3-Lite: Constant-time Spatial Indexing Logic (Scalable)
  */
 
+import * as h3 from 'h3-js';
+
 /**
- * Grid-based Spatial Hash for O(1) lookup
- * Scalable to 50k+ responders across a city
+ * PRODUCTION SPATIAL INDEXING (UBER H3)
+ * Replaces H3-Lite grid hash with hexagonal hierarchical indexing.
  */
-export function getSpatialCell(lat, lon, resolution = 0.01) {
-  // Resolution 0.01 is ~1.1km - perfect for urban response clusters
-  const latCell = Math.floor(lat / resolution);
-  const lonCell = Math.floor(lon / resolution);
-  return `h3_r7_${latCell}_${lonCell}`;
+
+/**
+ * Converts Lat/Lon to a hexagonal cell ID at resolution 7 (~1.22km).
+ */
+export function getSpatialCell(lat, lon, resolution = 7) {
+  return h3.latLngToCell(lat, lon, resolution);
 }
 
 /**
- * Neighbor Expansion logic to handle boundary artifacts
- * Searches the 3x3 grid around the center cell
+ * Retrieves neighboring cells (disk) to handle boundary artifacts.
+ * Uses h3.gridDisk for O(1) adjacency lookup.
  */
-export function getNeighboringCells(cellId) {
-  const parts = cellId.split('_');
-  const lat = parseInt(parts[2]);
-  const lon = parseInt(parts[3]);
-  
-  const neighbors = [];
-  for (let i = -1; i <= 1; i++) {
-    for (let j = -1; j <= 1; j++) {
-      neighbors.push(`h3_r7_${lat + i}_${lon + j}`);
-    }
-  }
-  return neighbors;
+export function getNeighboringCells(cellId, ringSize = 1) {
+  return h3.gridDisk(cellId, ringSize);
+}
+
+/**
+ * Calculates hierarchical distance between two cells.
+ */
+export function getCellDistance(origin, destination) {
+  return h3.gridDistance(origin, destination);
 }
 
 /**
@@ -43,7 +43,9 @@ export function calculateESS(incident, responder) {
   const weights = { eta: 0.4, availability: 0.4, severity: 0.2 };
   
   const availabilityScore = responder.status === 'AVAILABLE' ? 100 : 0;
-  const etaScore = Math.max(0, 100 - (responder.eta_seconds / 30)); // 30s per point penalty
+  // Use distance in meters if available, else fallback to 1km per cell
+  const distanceMeters = responder.dist_meters || (responder.cell_distance * 1200) || 0;
+  const etaScore = Math.max(0, 100 - (distanceMeters / 300)); // ~300m per point penalty
   
   const finalScore = (etaScore * weights.eta) + (availabilityScore * weights.availability);
   

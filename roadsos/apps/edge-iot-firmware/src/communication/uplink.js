@@ -4,23 +4,26 @@
  * Project: RoadSoS (IIT Madras Hackathon)
  */
 
-import axios from 'axios';
+import dgram from 'node:dgram';
 import { PayloadSerializer } from '../communication/payload-serializer.js';
 import { HybridLogicalClock } from '../../../../libs/core-utils/src/hlc.js';
 import { PersistentStorage } from '../storage/nvs.js';
 
 export class RobustUplink {
-  constructor(hardwareId, gatewayUrl) {
+  constructor(hardwareId, gatewayHost, gatewayPort = 1884) {
     this.hardwareId = hardwareId;
-    this.endpoint = `${gatewayUrl}/api/v1/ingestion/crash`;
+    this.gatewayHost = gatewayHost;
+    this.gatewayPort = gatewayPort;
+    this.client = dgram.createSocket('udp4');
+    
     this.clock = new HybridLogicalClock(hardwareId);
     this.storage = new PersistentStorage(process.cwd());
     this.queue = [];
-    this.isTransmitting = false;
   }
 
   async init() {
     this.queue = await this.storage.loadQueue();
+    console.log(`📡 [Edge-Uplink] UDP Client Ready. Target: ${this.gatewayHost}:${this.gatewayPort}`);
   }
 
   async enqueueEvent(telemetry, location) {
@@ -29,7 +32,8 @@ export class RobustUplink {
       hlc_timestamp: this.clock.now(),
       telemetry,
       location,
-      timestamp: Date.now()
+      timestamp: Date.now(),
+      vehicle_class: 'M1' // Default for prototype
     };
     this.queue.push(event);
     await this.storage.saveQueue(this.queue);
@@ -37,22 +41,22 @@ export class RobustUplink {
   }
 
   async processQueue() {
-    if (this.queue.length === 0 || this.isTransmitting) return;
-    this.isTransmitting = true;
+    if (this.queue.length === 0) return;
+    
     const event = this.queue[0];
-    try {
-      const binary = PayloadSerializer.serialize(event);
-      await axios.post(this.endpoint, binary, {
-        headers: { 'Content-Type': 'application/x-msgpack' },
-        timeout: 5000
-      });
+    const binary = PayloadSerializer.serialize(event);
+
+    this.client.send(binary, this.gatewayPort, this.gatewayHost, async (err) => {
+      if (err) {
+        console.error('🚨 [Edge-Uplink] UDP Send Failure:', err.message);
+        // Exponential backoff or retry logic would go here
+        return;
+      }
+      
+      console.log(`🚀 [Edge-Uplink] MQTT-SN SOS Packet Sent (${binary.length} bytes)`);
       this.queue.shift();
       await this.storage.saveQueue(this.queue);
-    } catch (err) {
-      setTimeout(() => { this.isTransmitting = false; this.processQueue(); }, 5000);
-      return;
-    }
-    this.isTransmitting = false;
-    setImmediate(() => this.processQueue());
+      setImmediate(() => this.processQueue());
+    });
   }
 }

@@ -7,8 +7,8 @@
 import { Worker } from 'bullmq';
 import axios from 'axios';
 import { ENV } from '../config/env.js';
-import { cacheService } from '../services/cache-service.js';
-import { DispatchService } from '../services/dispatch-service.js';
+import { persistenceService } from '../services/persistence-service.js';
+import { OptimizedDispatchService } from '../services/dispatch-service.js';
 
 /**
  * PRODUCTION-GRADE CRASH TRIAGE WORKER
@@ -22,7 +22,7 @@ export class CrashTriageWorker {
       tls: ENV.REDIS_URL.startsWith('rediss') ? {} : undefined
     };
 
-    this.dispatchService = new DispatchService(io);
+    this.dispatchService = new OptimizedDispatchService(io);
     this.aiServiceUrl = process.env.AI_TRIAGE_URL || 'http://localhost:8000/predict';
 
     this.worker = new Worker('crash_processing', async (job) => {
@@ -42,6 +42,7 @@ export class CrashTriageWorker {
       const vehicleMap = { 'L3': 0, 'L5': 0, 'M1': 1, 'N1': 2 };
       const impact_g = telemetry.resultant_a || 0;
       
+      // 1. Execute AI Triage (Random Forest)
       let triageResult;
       try {
         const response = await axios.post(this.aiServiceUrl, {
@@ -52,6 +53,7 @@ export class CrashTriageWorker {
         }, { timeout: 3000 });
         triageResult = response.data;
       } catch (aiErr) {
+        // Tier-1 Heuristic Fallback
         triageResult = { triage_level: impact_g > 20 ? 'CRITICAL' : 'MODERATE' };
       }
 
@@ -64,13 +66,17 @@ export class CrashTriageWorker {
         }
       };
 
+      // 2. Perform Spatial Routing (PostGIS)
       const dispatchResult = await this.dispatchService.processEmergency(crashContext);
 
-      await cacheService.commitStateUpdate(incidentId, {
+      // 3. Durable Snapshot (Redis Hash)
+      // Finalize the state machine in distributed memory
+      await persistenceService.snapshotIncident(incidentId, {
         ...crashContext,
         ...triageResult,
         ...dispatchResult,
-        processed_at: Date.now()
+        processed_at: Date.now(),
+        status: 'DISPATCHED'
       });
 
       return triageResult;

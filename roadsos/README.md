@@ -72,7 +72,7 @@ The system utilizes a multi-layered mesh to isolate failures and ensure high ava
 | :--- | :--- | :--- | :--- |
 | **Network Loss** | Uplink ACK timeout | Local buffering in NVS | Delayed sync via SMS/Fallback |
 | **Responder Silent** | Heartbeat TTL expiry | Emit `RESPONDER_SILENT` | Auto-failover to backup unit |
-| **Process Crash** | OS signal | `hydrate()` hook on boot | Restore state from `hot-state.json` |
+| **Process Crash** | OS signal | `hydrate()` hook on boot | Restore state from distributed Redis Streams |
 | **Routing Failure** | API Timeout/404 | Tier-1 Heuristic Fallback | Dispatch via Euclidean + Urban Heuristic |
 | **Security Breach** | Invalid JWT / Replay | Socket Disconnection | Immediate unauthorized access block |
 
@@ -87,22 +87,19 @@ The system utilizes a multi-layered mesh to isolate failures and ensure high ava
 
 ---
 
-## 8. Implementation Gaps & Transparency
+## 8. Technical Maturity (V2 Upgrades)
 
-For the purpose of evaluation, the following production components are currently simulated or simplified:
-
-*   **H3-Lite:** A grid-based spatial hash is used instead of the full hierarchical hexagonal Uber H3 library.
-*   **Transport Simulation:** The edge simulator utilizes HTTP POST over TCP to mimic the intended MQTT-SN over UDP protocol.
-*   **Partial Persistence:** State is persisted to a local JSON flat-file rather than a distributed Redis/Kafka cluster.
+*   **Persistence:** Upgraded from local JSON to **Redis Streams** for durable, immutable event logging and city-wide state hydration.
+*   **Transport:** Implemented true **MQTT-SN Gateway** (UDP Port 1884) for low-overhead edge alerts, replacing legacy HTTP/TCP POST.
+*   **Security:** Integrated **HashiCorp Vault** for secure secret synchronization and rotation, eliminating plain-text environment variable risks.
 
 ---
 
-## 9. Production Upgrade Path
+## 9. Production Roadmap (Remaining)
 
-*   **Spatial:** Replace Grid-Hash with official **H3 Hierarchical Indexing** to eliminate boundary artifacts.
-*   **Durability:** Transition from filesystem hooks to **Redis Streams** or **Kafka** for event-sourced persistence.
-*   **Protocol:** Implement a true **MQTT-SN Gateway** for low-overhead UDP edge alerts.
-*   **Security:** Integrate **HashiCorp Vault** for secret rotation and mTLS for device-to-gateway identity.
+*   **Spatial:** Replace H3-Lite Grid-Hash with official **H3 Hierarchical Indexing** to eliminate boundary artifacts.
+*   **Auth:** Implement **mTLS (Mutual TLS)** for hardware-level device-to-gateway identity validation.
+
 
 ---
 

@@ -6,7 +6,7 @@
  */
 
 import { Queue } from 'bullmq';
-import { ENV } from '../config/env.secure.js';
+import { ENV } from '../config/env.js';
 
 /**
  * DISTRIBUTED TASK ORCHESTRATOR

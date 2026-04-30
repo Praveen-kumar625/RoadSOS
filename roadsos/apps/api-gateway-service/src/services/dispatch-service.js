@@ -6,12 +6,13 @@
  */
 
 import { createClient } from '@supabase/supabase-js';
-import { ENV } from '../../config/env.secure.js';
+import { ENV } from '../../config/env.js';
+import { livenessService } from './liveness-service.js';
+import { getSpatialCell, getNeighboringCells } from '../../../../libs/core-utils/src/spatial.js';
 
 /**
- * HYPER-OPTIMIZED DISPATCH ORCHESTRATOR
- * Zero application-side spatial math.
- * Delegates 100% of proximity logic to PostGIS.
+ * HYPER-OPTIMIZED DISPATCH ORCHESTRATOR (H3 HARDENED)
+ * Combines PostGIS (Discovery) with H3/Redis (Liveness).
  */
 export class OptimizedDispatchService {
   constructor(io) {
@@ -20,7 +21,7 @@ export class OptimizedDispatchService {
   }
 
   /**
-   * Core Dispatch Logic (PostGIS Powered)
+   * Core Dispatch Logic (PostGIS + H3)
    */
   async processEmergency(crashData) {
     const { lat, lon } = crashData.location;
@@ -29,38 +30,46 @@ export class OptimizedDispatchService {
     console.log(`🚨 [Dispatch] Processing ${severity} Incident at ${lat}, ${lon}`);
 
     try {
-      // Step 1: Find prioritized responders using RPC (O(log N))
-      // This single DB call handles radius filter, ICU requirement, and distance sorting.
-      const { data: responders, error } = await this.supabase.rpc('get_nearby_responders_v2', {
+      // Step 1: Broad Discovery via PostGIS (O(log N))
+      const { data: potentialResponders, error } = await this.supabase.rpc('get_nearby_responders_v2', {
         target_lat: lat,
         target_lon: lon,
-        radius_meters: 10000, // Search within 10km for high-severity
+        radius_meters: 10000,
         min_icu: requiresIcu
       });
 
       if (error) throw error;
 
-      if (!responders || responders.length === 0) {
-        return this.escalateToHuman(crashData, "NO_RESPONDERS_IN_RADIUS");
+      // Step 2: Liveness Verification via H3/Redis
+      // We short-circuit if the responder hasn't heartbeated recently.
+      const activeResponders = [];
+      for (const responder of (potentialResponders || [])) {
+        const isActive = await livenessService.isResponderActive(responder.id);
+        if (isActive) {
+          activeResponders.push(responder);
+        }
       }
 
-      // Step 2: Select the optimal responder (Heuristic: Closest with lowest load)
-      // Since SQL already sorted by distance, we pick the first eligible one.
-      const primaryResponder = responders[0];
+      if (activeResponders.length === 0) {
+        return this.escalateToHuman(crashData, "NO_ACTIVE_RESPONDERS_FOUND");
+      }
 
-      // Step 3: Atomic State Handover via Redis (Simulation)
+      // Step 3: Select the optimal responder (Closest Active)
+      const primaryResponder = activeResponders[0];
+
+      // Step 4: Atomic State Handover
       const dispatchState = {
         incidentId: crashData.id,
         status: 'DISPATCHED',
         responder: primaryResponder,
-        eta_minutes: Math.ceil(primaryResponder.dist_meters / 450), // 450m/min approx speed
-        spatial_engine: 'PostGIS_GiST'
+        eta_minutes: Math.ceil(primaryResponder.dist_meters / 450),
+        spatial_engine: 'Hybrid_PostGIS_H3'
       };
 
-      // Step 4: Broadcast to Stakeholders
+      // Step 5: Broadcast to Stakeholders
       this.io.to(`incident_${crashData.id}`).emit('responder_assigned', dispatchState);
       
-      console.log(`✅ [Dispatch] Assigned ${primaryResponder.name} (ETA: ${dispatchState.eta_minutes}m)`);
+      console.log(`✅ [Dispatch] Assigned Liveness-Verified ${primaryResponder.name} (ETA: ${dispatchState.eta_minutes}m)`);
       return dispatchState;
 
     } catch (err) {
