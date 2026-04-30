@@ -6,109 +6,33 @@
 
 import express from 'express';
 import { createServer } from 'http';
-import { Server } from 'socket.io';
 import helmet from 'helmet';
 import cors from 'cors';
-import { rateLimit } from 'express-rate-limit';
-import { EventEmitter } from 'events';
-import jwt from 'jsonwebtoken';
-import { AegisCoreAI } from '@roadsos/ai-local-models';
-import { DispatchService } from './services/dispatch-service.js';
 import { ENV } from './config/env.js';
-
-const app = express();
-const httpServer = createServer(app);
-const io = new Server(httpServer, { cors: { origin: '*' } });
-
-// 1. HARDENED SECURITY LAYER (OWASP Compliance)
-const ingestionLimiter = rateLimit({
-  windowMs: 60 * 1000, // 1 minute
-  max: 30, // Limit each IoT device/IP to 30 requests per minute
-  message: { error: 'RATE_LIMIT_EXCEEDED', advice: 'Hardware malfunctioning? Reducing sampling rate.' }
-});
-
-// SYSTEM-WIDE EVENT BUS (Decoupled Core)
-const systemBus = new EventEmitter();
-
-const aegisAI = new AegisCoreAI(ENV.HF_TOKEN);
-const dispatcher = new DispatchService(io);
-
-// 3. IN-MEMORY TELEMETRY CACHE (High-Throughput Windowing)
-const telemetryBuffer = new Map(); // incidentId -> [telemetry history]
-
-// Wire Event Bus to Service
-systemBus.on('CRITICAL_IMPACT', (data) => {
-  dispatcher.processSOS(data.context, data.analysis);
-});
-
-app.use(helmet());
-app.use(cors());
-app.use(express.json());
+import { IngestionRouter } from './api/routes/ingestion.routes.js';
 
 /**
- * PRODUCTION-GRADE SOS PIPELINE (v5 Decoupled)
+ * PRODUCTION-GRADE API GATEWAY (OPTIMIZED)
  */
-app.post('/api/v1/ingestion/crash', ingestionLimiter, async (req, res) => {
-  const { telemetry, location, timestamp, vehicle_class, hardware_id } = req.body;
-  
-  // 1. AUTHENTICATION (Zero-Trust Identity)
-  if (!hardware_id || !hardware_id.startsWith('ROAD-')) {
-    return res.status(401).json({ error: 'UNAUTHORIZED_HARDWARE', detail: 'Invalid device signature' });
-  }
+const app = express();
+const server = createServer(app);
 
-  if (!telemetry || !location) return res.status(400).json({ error: 'INVALID_SCHEMA' });
+// Perimeter Defense
+app.use(helmet());
+app.use(cors({ origin: ENV.NODE_ENV === 'production' ? /\.roadsos\.in$/ : '*' }));
 
-  const incidentId = `SOS-${timestamp}`;
-  
-  // 1. MAINTAIN TEMPORAL WINDOW
-  const history = telemetryBuffer.get(incidentId) || [];
-  history.push(telemetry);
-  if (history.length > 10) history.shift(); // Keep only last 10 points
-  telemetryBuffer.set(incidentId, history);
+// High-Throughput Body Parsers
+app.use(express.json({ limit: '10kb' }));
+app.use(express.raw({ type: 'application/x-msgpack', limit: '5kb' }));
 
-  // 2. FAST INGESTION (Non-Blocking)
-  const analysis = { 
-    severity: (telemetry.resultant_a > 15) ? 'CRITICAL' : 'MODERATE',
-    vehicle_class
-  };
+// Optimized Routing
+app.use('/api/v1/ingestion', IngestionRouter);
 
-  systemBus.emit('CRITICAL_IMPACT', { 
-    context: { telemetry, location, timestamp },
-    analysis 
-  });
+// Health Check
+app.get('/health', (req, res) => res.json({ status: 'UP', version: '2.0.0-optimized' }));
 
-  // 3. ASYNC AI ENRICHMENT (Temporal)
-  aegisAI.analyze(telemetry, history).then(ai => {
-    io.to(`incident_${incidentId}`).emit('ai_enrichment', ai);
-    console.log(`[AI] Enhanced Incident ${incidentId} using ${ai.method}`);
-  }).catch(() => {});
-
-  res.status(202).json({ 
-    status: 'INGESTED', 
-    incidentId,
-    bus_latency: 'O(1)' 
-  });
-});
-
-io.on('connection', (socket) => {
-  const { token, responderId } = socket.handshake.auth;
-
-  // HARDENED ZERO-TRUST HANDSHAKE
-  try {
-    if (!token) throw new Error("MISSING_TOKEN");
-    const user = jwt.verify(token, ENV.HF_TOKEN);
-    console.log(`[Security] Authenticated Responder: ${user.id}`);
-
-    socket.on('subscribe_incident', (id) => socket.join(`incident_${id}`));
-    socket.on('responder_heartbeat', (data) => dispatcher.handleHeartbeat(responderId || user.id, data));
-
-  } catch (e) {
-    console.warn(`[Security] UNAUTHORIZED ACCESS ATTEMPT (Socket: ${socket.id})`);
-    socket.disconnect();
-  }
-});
-
-const PORT = ENV.PORT;
-httpServer.listen(PORT, () => {
-  console.log(`🛡️ RoadSoS v5 (Distributed Core) Online on Port ${PORT}`);
+const PORT = ENV.PORT || 5000;
+server.listen(PORT, () => {
+  console.log(`🛡️ RoadSoS V2 Architecture Online [Port ${PORT}]`);
+  console.log(`🚀 Mode: ${ENV.NODE_ENV} | Engine: Node.js 20`);
 });

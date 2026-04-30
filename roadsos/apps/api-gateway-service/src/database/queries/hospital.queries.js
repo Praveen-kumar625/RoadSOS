@@ -1,1 +1,0 @@
-export const getHospitals = 'SELECT * FROM hospitals...';

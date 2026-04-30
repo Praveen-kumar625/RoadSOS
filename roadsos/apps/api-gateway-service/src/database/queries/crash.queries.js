@@ -1,1 +1,0 @@
-export const insertCrash = 'INSERT INTO crashes...';

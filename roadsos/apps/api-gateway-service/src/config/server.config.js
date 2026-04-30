@@ -1,1 +1,0 @@
-export const serverConfig = { port: 5000 };
