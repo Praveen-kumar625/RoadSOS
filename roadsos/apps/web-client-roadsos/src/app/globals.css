@@ -2,4 +2,79 @@
 @tailwind components;
 @tailwind utilities;
 
-body { background-color: #050505; color: #fff; }
+@layer base {
+  :root {
+    --background: 222.2 84% 4.9%;
+    --foreground: 210 40% 98%;
+
+    --card: 222.2 84% 4.9%;
+    --card-foreground: 210 40% 98%;
+
+    --popover: 222.2 84% 4.9%;
+    --popover-foreground: 210 40% 98%;
+
+    --primary: 0 84.2% 60.2%;
+    --primary-foreground: 210 40% 98%;
+
+    --secondary: 217.2 91.2% 59.8%;
+    --secondary-foreground: 222.2 47.4% 11.2%;
+
+    --muted: 217.2 32.6% 17.5%;
+    --muted-foreground: 215 20.2% 65.1%;
+
+    --accent: 217.2 32.6% 17.5%;
+    --accent-foreground: 210 40% 98%;
+
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 217.2 32.6% 17.5%;
+    --input: 217.2 32.6% 17.5%;
+    --ring: 0 84.2% 60.2%;
+
+    --radius: 0.75rem;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-emergency-bg text-foreground font-sans antialiased selection:bg-primary/30;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+}
+
+@layer components {
+  .glass-card {
+    @apply bg-white/5 backdrop-blur-md border border-white/10 rounded-2xl shadow-xl;
+  }
+  
+  .neon-glow-red {
+    @apply shadow-[0_0_15px_rgba(239,68,68,0.5)] border-primary/50;
+  }
+
+  .neon-glow-blue {
+    @apply shadow-[0_0_15px_rgba(59,130,246,0.5)] border-secondary/50;
+  }
+
+  .pill-button {
+    @apply rounded-full px-6 py-3 font-semibold transition-all active:scale-95;
+  }
+
+  .emergency-gradient {
+    @apply bg-gradient-to-r from-[#EF4444] to-[#DC2626];
+  }
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 5px;
+}
+::-webkit-scrollbar-track {
+  @apply bg-transparent;
+}
+::-webkit-scrollbar-thumb {
+  @apply bg-white/10 rounded-full;
+}
