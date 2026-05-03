@@ -1,120 +1,117 @@
-# RoadSoS
-### Edge-First Emergency Response System
-#### Designed for Infrastructure Failure
+# <p align="center">🚨 Road<span style="color:#EF4444">SOS</span></p>
+<p align="center"><b>Edge-First Emergency Response System</b><br/><i>Designed for Infrastructure Failure • Built for Life-Critical Resilience</i></p>
+
+<p align="center">
+  <img src="https://img.shields.io/badge/Architecture-FSD-blue?style=for-the-badge" alt="FSD Architecture" />
+  <img src="https://img.shields.io/badge/Next.js-15-black?style=for-the-badge&logo=next.js" alt="Next.js 15" />
+  <img src="https://img.shields.io/badge/Tailwind-CSS-38B2AC?style=for-the-badge&logo=tailwind-css" alt="Tailwind CSS" />
+  <img src="https://img.shields.io/badge/Zero--Trust-Security-red?style=for-the-badge" alt="Zero-Trust" />
+</p>
 
 ---
 
-> **System Type:** Safety-Critical Distributed System  
-> **Core Metric:** Time-to-First-Response  
-> **Architecture:** Edge-First, Event-Driven, Zero-Trust  
-> **Status:** Prototype (Production-Oriented Design)
+## ⚡ Overview
+**RoadSoS** is a safety-critical distributed system engineered to solve the "last-mile" failure of emergency services. While traditional systems rely on stable cloud connections and manual triggers, RoadSoS operates on an **Edge-First** philosophy—detecting physical impacts locally on-device and orchestrating deterministic dispatch even when the network is partitioned.
+
+> **"RoadSOS is not built for systems that work—it is built for systems that fail and still respond."**
 
 ---
 
-## 1. Problem Statement
+## ✨ High-Fidelity Experience (Dark Neon)
+The web client features a **Zero-Cognitive-Load** interface designed for high-stress scenarios:
 
-Existing emergency response systems frequently fail in critical life-safety scenarios due to:
-
-*   **User Incapacitation:** Unconscious victims are unable to trigger manual SOS alerts.
-*   **Network Latency/Loss:** Cloud-dependent detection (e.g., LLM inference) introduces unacceptable delays or total failure in rural and high-impact zones.
-*   **Operational Noise:** High false-positive rates (potholes, dropped phones) saturate emergency services, while "ghost" responders (offline units) create dispatch bottlenecks.
-
----
-
-## 2. System Philosophy
-
-RoadSoS is built on four core engineering pillars:
-
-*   **Design for failure, not success:** Every component assumes the network is partitioned, the responder is silent, and the process will restart.
-*   **Detection must never block:** Physical impact analysis is handled locally on-device at 100Hz; networking is treated as an asynchronous background concern.
-*   **Dispatch must be deterministic:** Responder selection is based on verifiable real-time liveness and road-network geometry, eliminating statistical guesswork.
-*   **Absence of signal is a signal:** A missing heartbeat from an assigned responder is treated as an actionable data event, triggering immediate failover.
+*   🔴 **Primary/Emergency:** Neon Red (#EF4444) with pulsating glow effects for SOS actions.
+*   🔵 **Tracking:** Electric Blue (#3B82F6) for active routes and responder telemetry.
+*   🔲 **Glassmorphism:** Subtle transparent cards with backdrop blurs for depth and focus.
+*   📱 **Mobile-First:** Optimized for one-thumb reachability (Bottom-heavy action centers).
 
 ---
 
-## 3. Architecture Overview
+## 🛠️ Core Engineering Pillars
 
-The system utilizes a multi-layered mesh to isolate failures and ensure high availability:
+### 1. Edge-First Detection
+High-frequency IMU sampling fused with resultant acceleration and rotational inertia algorithms. Physical impact analysis is handled **locally** at 100Hz to eliminate cloud latency.
 
-| Layer | Responsibility |
-| :--- | :--- |
-| **Edge Layer** | High-frequency IMU sampling, Resultant Acceleration, and Rotational Inertia fusion. |
-| **Ingestion Layer** | Asynchronous gateway utilizing an internal Event Bus to decouple alerts from logic. |
-| **Orchestrator** | Incident state management, H3 spatial indexing, and Emergency Scoring (ESS). |
-| **Response Layer** | Duplex communication for responders with adaptive heartbeats and liveness tracking. |
-| **Security Layer** | Zero-Trust enforcement with JWT handshakes and monotonic sequence validation. |
+### 2. Deterministic Dispatch
+Uses **H3 Spatial Indexing** and real-time heartbeat-based liveness verification. If a responder doesn't pulse, they are evicted—ensuring every dispatch is backed by a verified unit.
 
----
-
-## 4. Data Flow
-
-1.  **Detection:** Edge device detects $a_{res} > T_g$ fused with rotational energy $\omega_{res}$.
-2.  **Emission:** Event-triggered uplink sends a signed, sequenced packet to the Ingestion Layer.
-3.  **Dispatch:** Orchestrator shortlists the closest **Liveness-Verified** responders via H3 cell expansion.
-4.  **Handshake:** Selected responder accepts the incident via a private, authenticated Socket Room.
-5.  **Tracking:** Dynamic ETA monitoring initiates parallel dispatch if the primary responder deviates or goes silent.
+### 3. Event-Driven Resilience
+Built on **Redis Streams** for durable event logging. The system treats a "missing signal" as an actionable data event, triggering immediate auto-failover to backup units.
 
 ---
 
-## 5. Core Engineering Features
+## 📂 Project Structure (FSD)
+This monorepo follows the **Feature-Sliced Design** architecture for modularity and scalability:
 
-*   **Asynchronous Edge Pipeline:** Sampling runs in a simulated ISR; networking is offloaded to a producer-consumer queue with exponential backoff.
-*   **Event-Driven Anomaly Detection:** No polling watchdogs. Re-dispatch is triggered reactively by GPS deltas or missed heartbeat events.
-*   **Heartbeat-based Liveness:** Responders maintain an active TTL. Units without recent pings are evicted from the primary dispatch index.
-*   **Replay Protection:** Telemetry payloads utilize a monotonic sequence counter to prevent adversarial re-injection.
-*   **State Hydration:** Non-blocking filesystem hooks ensure city-wide emergency state is persisted and recoverable after a crash.
-
----
-
-## 6. Failure Model
-
-| Failure Scenario | Detection Mechanism | System Response | Degradation Strategy |
-| :--- | :--- | :--- | :--- |
-| **Network Loss** | Uplink ACK timeout | Local buffering in NVS | Delayed sync via SMS/Fallback |
-| **Responder Silent** | Heartbeat TTL expiry | Emit `RESPONDER_SILENT` | Auto-failover to backup unit |
-| **Process Crash** | OS signal | `hydrate()` hook on boot | Restore state from distributed Redis Streams |
-| **Routing Failure** | API Timeout/404 | Tier-1 Heuristic Fallback | Dispatch via Euclidean + Urban Heuristic |
-| **Security Breach** | Invalid JWT / Replay | Socket Disconnection | Immediate unauthorized access block |
+```text
+roadsos/
+├── apps/
+│   ├── web-client-roadsos/      # Next.js 15 App (UI/UX)
+│   ├── api-gateway-service/     # Ingestion & Socket Orchestration
+│   └── edge-iot-firmware/       # Hardware Simulation & Logic
+├── libs/
+│   ├── ai-local-models/         # RAG & Triage Logic
+│   └── core-types/              # Shared Domain Types
+└── tools/                       # Security Audits & SAST
+```
 
 ---
 
-## 7. Security Model
+## 🚀 Getting Started
 
-*   **Handshake Authentication:** All socket connections require a JWT verified against an HMAC secret.
-*   **Scoped Communication:** Real-time data is restricted to `incident_${id}` rooms; zero city-wide broadcasting.
-*   **Replay Prevention:** Hardened validation of monotonic sequence numbers for all edge telemetry.
-*   **Known Constraint:** In this prototype, secrets are managed via environment variables rather than a production-grade Vault.
+### 📋 Prerequisites
+- **Node.js** >= 20.0.0
+- **npm** >= 10.x
+
+### 🔧 Setup Guide
+
+1. **Clone the Repository**
+   ```bash
+   git clone https://github.com/Shubhamsaboo/awesome-llm-apps.git
+   cd roadsos
+   ```
+
+2. **Install Dependencies**
+   ```bash
+   # From the root directory
+   npm install
+   ```
+
+3. **Environment Configuration**
+   ```bash
+   cp apps/web-client-roadsos/.env.local.example apps/web-client-roadsos/.env.local
+   ```
+
+4. **Launch Development Environment**
+   ```bash
+   # To start only the Web Client (Recommended for UI Preview)
+   cd apps/web-client-roadsos
+   npm run dev
+   ```
+
+5. **Access the Preview**
+   - Open **[http://localhost:3000](http://localhost:3000)**
+   - **Tip:** Press `F12` and toggle **Mobile View** to see the optimized emergency interface.
 
 ---
 
-## 8. Technical Maturity (V2 Upgrades)
+## 🛡️ Failure Model & Resilience
 
-*   **Persistence:** Upgraded from local JSON to **Redis Streams** for durable, immutable event logging and city-wide state hydration.
-*   **Transport:** Implemented true **MQTT-SN Gateway** (UDP Port 1884) for low-overhead edge alerts, replacing legacy HTTP/TCP POST.
-*   **Security:** Integrated **HashiCorp Vault** for secure secret synchronization and rotation, eliminating plain-text environment variable risks.
-
----
-
-## 9. Production Roadmap (Remaining)
-
-*   **Spatial:** Replace H3-Lite Grid-Hash with official **H3 Hierarchical Indexing** to eliminate boundary artifacts.
-*   **Auth:** Implement **mTLS (Mutual TLS)** for hardware-level device-to-gateway identity validation.
-
+| Scenario | Detection | System Response |
+| :--- | :--- | :--- |
+| **Network Loss** | Uplink ACK Timeout | Local NVS buffering & delayed sync |
+| **Responder Silent** | Heartbeat TTL Expiry | Immediate re-dispatch to next closest |
+| **Process Crash** | OS Signal | State hydration from Redis Streams |
+| **Routing Failure** | API 404/Timeout | Euclidean + Urban Heuristic fallback |
 
 ---
 
-## 10. Demo Flow
-
-1.  **Trigger:** Execute IoT simulator with `--crash`.
-2.  **Detection:** Review firmware logs for local physics validation (Resultant-A + Rotation).
-3.  **Liveness:** Observe the dashboard excluding OFFLINE/STALE responders in real-time.
-4.  **Handshake:** Verify secure dispatch to an ACTIVE responder and JWT tracking link generation.
-5.  **Resilience:** Simulate responder signal loss and observe the event-driven re-dispatch in <1s.
+## 👤 Team: Divine Coder
+- **Team Lead:** Praveen Kumar
+- **Hackathon:** National Road Safety Hackathon 2026 (IIT Madras)
 
 ---
 
-## 11. Final Defensive Statement
-
-RoadSoS is not claiming perfection—we are demonstrating a system that knows its failure modes and is designed to evolve beyond them. While individual implementation details have been simplified for this prototype, the underlying architecture is built to sustain life-saving operations under extreme infrastructure failure.
-
-**RoadSOS is not built for systems that work—it is built for systems that fail and still respond.**
+<p align="center">
+  <b>Built with ❤️ for Road Safety</b>
+</p>
