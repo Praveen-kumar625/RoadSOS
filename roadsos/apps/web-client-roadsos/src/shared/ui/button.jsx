@@ -1,5 +1,6 @@
+"use client";
+
 import * as React from "react"
-import { slot } from "@radix-ui/react-slot"
 import { cva } from "class-variance-authority"
 import { clsx } from "clsx"
 import { twMerge } from "tailwind-merge"
@@ -9,29 +10,27 @@ function cn(...inputs) {
 }
 
 const buttonVariants = cva(
-  "inline-flex items-center justify-center whitespace-nowrap rounded-full text-sm font-medium transition-all focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 active:scale-95",
+  "inline-flex items-center justify-center whitespace-nowrap rounded-full text-sm font-semibold transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:pointer-events-none disabled:opacity-50 active:scale-95 touch-manipulation",
   {
     variants: {
       variant: {
         default:
-          "bg-primary text-primary-foreground shadow neon-glow-red hover:bg-primary/90",
+          "bg-primary text-primary-foreground shadow-neon-red hover:bg-primary/90",
         emergency:
-          "emergency-gradient text-white shadow-lg neon-glow-red animate-pulse",
-        destructive:
-          "bg-destructive text-destructive-foreground shadow-sm hover:bg-destructive/90",
+          "bg-emergency-gradient text-white shadow-sos-btn hover:brightness-110",
         outline:
-          "border border-white/20 bg-transparent shadow-sm hover:bg-white/10 hover:text-accent-foreground",
+          "border-2 border-white/20 bg-transparent hover:bg-white/10",
         secondary:
-          "bg-secondary text-secondary-foreground shadow-sm hover:bg-secondary/80 neon-glow-blue",
-        ghost: "hover:bg-white/10 hover:text-accent-foreground",
+          "bg-secondary text-secondary-foreground shadow-neon-blue",
+        ghost: "hover:bg-white/10",
         link: "text-primary underline-offset-4 hover:underline",
       },
       size: {
-        default: "h-12 px-6 py-3",
-        sm: "h-9 px-3 text-xs",
-        lg: "h-14 px-8 text-base",
-        icon: "h-12 w-12",
-        xl: "h-16 px-10 text-lg font-bold",
+        default: "h-14 px-8 py-4", // 56px height
+        sm: "min-h-[44px] h-11 px-6 text-sm", // WCAG AAA minimum 44px touch target
+        lg: "h-16 px-10 text-base",
+        icon: "min-h-[48px] min-w-[48px] h-12 w-12", // 48px touch target for icons
+        xl: "h-20 px-12 text-xl", // Removed italic/font-black for readability
       },
     },
     defaultVariants: {

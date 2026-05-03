@@ -8,7 +8,7 @@ function cn(...inputs) {
 }
 
 const badgeVariants = cva(
-  "inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
+  "inline-flex items-center rounded-full border px-2.5 py-1 text-[10px] font-black uppercase tracking-widest transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 italic",
   {
     variants: {
       variant: {
@@ -19,8 +19,9 @@ const badgeVariants = cva(
         destructive:
           "border-transparent bg-destructive text-destructive-foreground shadow",
         outline: "text-foreground border-white/20",
-        neon: "border-primary/50 bg-primary/10 text-primary shadow-[0_0_10px_rgba(239,68,68,0.3)]",
+        neon: "border-[#22C55E]/50 bg-[#22C55E]/10 text-[#22C55E] shadow-[0_0_10px_rgba(34,197,94,0.3)]",
         tracking: "border-secondary/50 bg-secondary/10 text-secondary shadow-[0_0_10px_rgba(59,130,246,0.3)]",
+        success: "border-transparent bg-[#22C55E] text-white shadow-[0_0_15px_rgba(34,197,94,0.4)]",
       },
     },
     defaultVariants: {
