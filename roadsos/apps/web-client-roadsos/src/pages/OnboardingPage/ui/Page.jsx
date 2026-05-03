@@ -1,3 +1,5 @@
+"use client";
+
 import * as React from "react"
 import { Button } from "@/shared/ui/button"
 import { ArrowRight, Shield, Zap, WifiOff } from "lucide-react"

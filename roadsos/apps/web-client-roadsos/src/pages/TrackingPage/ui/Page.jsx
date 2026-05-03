@@ -1,3 +1,5 @@
+"use client";
+
 import * as React from "react"
 import { AmbulanceTracker } from "@/features/LiveAmbulanceTracker/ui/AmbulanceTracker"
 import { ChevronLeft, Headphones } from "lucide-react"

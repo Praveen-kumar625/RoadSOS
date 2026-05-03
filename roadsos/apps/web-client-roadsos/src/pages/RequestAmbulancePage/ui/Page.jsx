@@ -1,3 +1,5 @@
+"use client";
+
 import * as React from "react"
 import { AmbulanceRequestForm } from "@/features/RequestAmbulance/ui/AmbulanceRequestForm"
 import { ChevronLeft, Headphones } from "lucide-react"

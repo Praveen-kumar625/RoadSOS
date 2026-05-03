@@ -1,4 +1,5 @@
 import "./globals.css";
+import { Providers } from "./providers";
 
 export const metadata = {
   title: "RoadSOS - Emergency Response",
@@ -17,7 +18,7 @@ export default function RootLayout({ children }) {
       </head>
       <body className="antialiased min-h-screen bg-emergency-bg selection:bg-primary/30 overflow-x-hidden">
         <div className="relative flex min-h-screen flex-col max-w-md mx-auto shadow-2xl border-x border-white/5">
-          {children}
+          <Providers>{children}</Providers>
         </div>
       </body>
     </html>
