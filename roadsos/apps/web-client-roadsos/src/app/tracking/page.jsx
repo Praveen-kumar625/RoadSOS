@@ -1,4 +1,4 @@
-import { TrackingPage } from "@/pages/TrackingPage/ui/Page"
+import { TrackingPage } from "@/views/TrackingPage/ui/Page"
 
 export default function Page() {
   return <TrackingPage />

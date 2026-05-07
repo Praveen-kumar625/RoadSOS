@@ -1,4 +1,4 @@
-import { OnboardingPage } from "@/pages/OnboardingPage/ui/Page"
+import { OnboardingPage } from "@/views/OnboardingPage/ui/Page"
 
 export default function Page() {
   return <OnboardingPage />

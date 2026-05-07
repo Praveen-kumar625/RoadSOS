@@ -49,11 +49,10 @@ export function OnboardingPage() {
         <div className="relative w-full aspect-[4/3] flex items-center justify-center">
            <div className="absolute w-full h-full bg-primary/20 blur-[80px] rounded-full scale-150 opacity-40" />
            <img 
-            src="https://img.freepik.com/premium-photo/ambulance-car-futuristic-city-neon-lights-generative-ai_834602-5360.jpg" 
+            src="/ambulance_onboarding.png" 
             alt="High Quality Ambulance"
             className="relative w-full h-full object-cover rounded-2xl drop-shadow-[0_20px_40px_rgba(239,68,68,0.3)] mask-image:linear-gradient(to_bottom,white_60%,transparent_100%)]"
             style={{ WebkitMaskImage: 'linear-gradient(to bottom, rgba(0,0,0,1) 60%, rgba(0,0,0,0) 100%)' }}
-            onError={(e) => { e.target.src = "https://img.freepik.com/premium-photo/modern-ambulance-vehicle-ready-emergency-responding-white-background-generative-ai_103070-1365.jpg" }}
            />
         </div>
 

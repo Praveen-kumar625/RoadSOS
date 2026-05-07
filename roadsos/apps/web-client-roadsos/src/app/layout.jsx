@@ -1,5 +1,6 @@
 import "./globals.css";
 import { Providers } from "./providers";
+import MainLayout from "@/shared/components/layout/MainLayout";
 
 export const metadata = {
   title: "RoadSOS - Emergency Response",
@@ -16,10 +17,12 @@ export default function RootLayout({ children }) {
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
         <meta name="apple-mobile-web-app-title" content="RoadSoS" />
       </head>
-      <body className="antialiased min-h-screen bg-emergency-bg selection:bg-primary/30 overflow-x-hidden">
-        <div className="relative flex min-h-screen flex-col max-w-md mx-auto shadow-2xl border-x border-white/5">
-          <Providers>{children}</Providers>
-        </div>
+      <body className="antialiased min-h-screen bg-[#0A0D14] overflow-x-hidden">
+        <Providers>
+          <MainLayout>
+            {children}
+          </MainLayout>
+        </Providers>
       </body>
     </html>
   );
