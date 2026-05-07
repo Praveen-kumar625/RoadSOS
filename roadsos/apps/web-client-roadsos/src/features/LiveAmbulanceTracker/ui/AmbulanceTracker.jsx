@@ -11,12 +11,17 @@ export function AmbulanceTracker() {
   // Use a mocked driver and ETA for demo purposes, but the request type is real
   const mockDriver = { name: "Ravi Kumar", rating: "4.8", experience: "10" }
 
+  const router = useRouter();
+
   useEffect(() => {
+    let interval;
     const fetchRequests = async () => {
       try {
         const reqs = await emergencyService.getActiveRequests();
         if (reqs.length > 0) {
           setActiveRequest(reqs[0]);
+        } else {
+          setActiveRequest(null);
         }
       } catch (err) {
         console.error(err);
@@ -24,11 +29,47 @@ export function AmbulanceTracker() {
         setLoading(false);
       }
     };
+    
     fetchRequests();
 
-    const interval = setInterval(fetchRequests, 10000);
-    return () => clearInterval(interval);
+    // 1. Subscribe to Supabase Realtime (WebSockets)
+    let channel;
+    if (process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+      channel = supabase
+        .channel('public:emergency_requests_tracking')
+        .on(
+          'postgres_changes',
+          { event: '*', schema: 'public', table: 'emergency_requests' },
+          (payload) => {
+            fetchRequests();
+          }
+        )
+        .subscribe();
+    }
+
+    interval = setInterval(fetchRequests, 10000);
+    return () => {
+      clearInterval(interval);
+      if (channel) supabase.removeChannel(channel);
+    };
   }, []);
+
+  const handleCancel = async () => {
+    if (!activeRequest) return;
+    
+    if (process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+      await supabase
+        .from('emergency_requests')
+        .update({ status: 'cancelled' })
+        .eq('id', activeRequest.id);
+    } else {
+      const existing = JSON.parse(localStorage.getItem('mock_emergencies') || '[]');
+      const updated = existing.map(req => req.id === activeRequest.id ? { ...req, status: 'cancelled' } : req);
+      localStorage.setItem('mock_emergencies', JSON.stringify(updated));
+    }
+    
+    router.push('/dashboard');
+  };
 
   if (loading) {
     return (

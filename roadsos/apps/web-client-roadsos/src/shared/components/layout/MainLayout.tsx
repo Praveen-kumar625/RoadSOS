@@ -7,6 +7,7 @@ import {
   Home, MapPin, Bell, User, History, Settings, LogOut, Menu, X, ShieldAlert
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { supabase } from "@/shared/api/supabase";
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -14,11 +15,38 @@ interface LayoutProps {
 
 export default function MainLayout({ children }: LayoutProps) {
   const [isBottomSheetOpen, setIsBottomSheetOpen] = useState(false);
+  const [userName, setUserName] = useState("User");
   const pathname = usePathname();
 
   useEffect(() => {
     setIsBottomSheetOpen(false);
   }, [pathname]);
+
+  // Fetch Auth Session
+  useEffect(() => {
+    const fetchUser = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.user?.user_metadata?.full_name) {
+        // Grab first name
+        const firstName = session.user.user_metadata.full_name.split(" ")[0];
+        setUserName(firstName);
+      }
+    };
+    
+    fetchUser();
+    
+    const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
+      if (session?.user?.user_metadata?.full_name) {
+        setUserName(session.user.user_metadata.full_name.split(" ")[0]);
+      } else {
+        setUserName("User");
+      }
+    });
+    
+    return () => {
+      authListener.subscription.unsubscribe();
+    };
+  }, []);
 
   useEffect(() => {
     if (isBottomSheetOpen) {
@@ -32,8 +60,11 @@ export default function MainLayout({ children }: LayoutProps) {
   }, [isBottomSheetOpen]);
 
   const toggleBottomSheet = () => setIsBottomSheetOpen((prev) => !prev);
+  const handleSignOut = async () => {
+    await supabase.auth.signOut();
+    // Redirect handled by Next.js or state
+  };
 
-  // Exclude auth from MainLayout wrapping if needed, but for now we keep it simple.
   const isAuthPage = pathname === '/auth';
 
   return (
@@ -46,7 +77,7 @@ export default function MainLayout({ children }: LayoutProps) {
         <header className="fixed top-0 left-0 right-0 z-50 flex h-16 items-center justify-between px-4 pt-safe-top bg-[#0A0D14]/80 backdrop-blur-xl border-b border-white/5">
           <div className="flex flex-col">
             <span className="text-xs text-white/50 uppercase tracking-wider font-semibold">RoadSOS</span>
-            <span className="text-lg font-bold text-white tracking-wide">Stay Safe, User</span>
+            <span className="text-lg font-bold text-white tracking-wide">Stay Safe, {userName}</span>
           </div>
 
           <button 
@@ -157,10 +188,10 @@ export default function MainLayout({ children }: LayoutProps) {
 
                 <div className="h-[1px] w-full bg-white/10 my-4" />
 
-                <Link href="/auth" className="flex items-center gap-4 p-4 rounded-2xl active:bg-white/5 transition-colors text-red-500">
+                <button onClick={handleSignOut} className="w-full flex items-center gap-4 p-4 rounded-2xl active:bg-white/5 transition-colors text-red-500">
                   <LogOut className="h-6 w-6" />
                   <span className="font-bold text-lg">Sign Out</span>
-                </Link>
+                </button>
               </div>
             </motion.div>
           </>

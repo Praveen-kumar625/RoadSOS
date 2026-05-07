@@ -5,48 +5,87 @@
  * File: apps/web-client-roadsos/public/sw.js
  */
 
-import { getPendingSOS, clearSOS } from '../src/shared/utils/offline-db.js';
-
-const CACHE_NAME = 'roadsos-static-v1';
+const CACHE_NAME = 'roadsos-static-v2';
 const ASSETS_TO_CACHE = [
   '/',
-  '/index.html',
   '/manifest.json',
-  '/icons/icon-192x192.png'
+  '/ambulance_onboarding.png'
 ];
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => cache.addAll(ASSETS_TO_CACHE))
   );
+  self.skipWaiting();
 });
 
-self.addEventListener('sync', (event) => {
-  if (event.tag === 'sync-sos-events') {
-    event.waitUntil(syncSOS());
-  }
+self.addEventListener('activate', (event) => {
+  event.waitUntil(self.clients.claim());
 });
 
-/**
- * PUSH OFFLINE SOS EVENTS TO GATEWAY
- */
-async function syncSOS() {
-  const pending = await getPendingSOS();
+// Cache-First strategy for static assets
+self.addEventListener('fetch', (event) => {
+  if (event.request.method !== 'GET') return;
   
-  for (const sos of pending) {
-    try {
-      const response = await fetch('/api/v1/ingestion/crash', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(sos)
+  event.respondWith(
+    caches.match(event.request).then((cachedResponse) => {
+      return cachedResponse || fetch(event.request).then((response) => {
+        return caches.open(CACHE_NAME).then((cache) => {
+          // Only cache valid responses
+          if (response.status === 200) {
+            cache.put(event.request, response.clone());
+          }
+          return response;
+        });
       });
+    })
+  );
+});
 
-      if (response.ok) {
-        await clearSOS(sos.id);
-        console.log(`[SW-Sync] Successfully synchronized Incident ID: ${sos.id}`);
-      }
-    } catch (error) {
-      console.error("[SW-Sync] Synchronization failed for entry:", sos.id);
+// Handle incoming Web Push Notifications
+self.addEventListener('push', (event) => {
+  let data = { title: "RoadSOS Emergency", body: "An emergency requires your attention.", url: "/driver" };
+  
+  if (event.data) {
+    try {
+      data = event.data.json();
+    } catch (e) {
+      data.body = event.data.text();
     }
   }
-}
+
+  const options = {
+    body: data.body,
+    icon: '/favicon.ico',
+    badge: '/favicon.ico',
+    vibrate: [200, 100, 200, 100, 200, 100, 200], // SOS vibration pattern
+    data: {
+      url: data.url || '/driver'
+    },
+    requireInteraction: true
+  };
+
+  event.waitUntil(
+    self.registration.showNotification(data.title, options)
+  );
+});
+
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  event.waitUntil(
+    clients.matchAll({ type: 'window' }).then(windowClients => {
+      // Check if there is already a window/tab open with the target URL
+      for (var i = 0; i < windowClients.length; i++) {
+        var client = windowClients[i];
+        // If so, just focus it
+        if (client.url === event.notification.data.url && 'focus' in client) {
+          return client.focus();
+        }
+      }
+      // If not, then open the target URL in a new window/tab
+      if (clients.openWindow) {
+        return clients.openWindow(event.notification.data.url);
+      }
+    })
+  );
+});

@@ -1,24 +1,64 @@
 "use client";
 
 import React, { useState } from "react";
-import { ShieldAlert, Mail, Lock, ArrowRight, User } from "lucide-react";
+import { ShieldAlert, Mail, Lock, ArrowRight, User, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
+import { supabase } from "@/shared/api/supabase";
 
 export function AuthPage() {
   const [isLogin, setIsLogin] = useState(true);
+  const [loading, setLoading] = useState(false);
+  const [errorMsg, setErrorMsg] = useState("");
+  
+  // Form State
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [fullName, setFullName] = useState("");
+  
   const router = useRouter();
 
-  const handleAuth = (e) => {
+  const handleAuth = async (e) => {
     e.preventDefault();
-    // TODO: Connect to Supabase Auth
-    // Simulate auth success
-    router.push("/dashboard");
+    setLoading(true);
+    setErrorMsg("");
+
+    try {
+      if (isLogin) {
+        // Handle Login
+        const { error } = await supabase.auth.signInWithPassword({
+          email,
+          password,
+        });
+        if (error) throw error;
+        router.push("/dashboard");
+      } else {
+        // Handle Sign Up
+        const { error } = await supabase.auth.signUp({
+          email,
+          password,
+          options: {
+            data: {
+              full_name: fullName,
+            }
+          }
+        });
+        if (error) throw error;
+        
+        // Supabase sign up might require email confirmation, but assuming auto-login for hackathon
+        router.push("/dashboard");
+      }
+    } catch (error) {
+      console.error("Auth error:", error);
+      setErrorMsg(error.message || "An error occurred during authentication.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
-    <div className="flex flex-col min-h-screen bg-[#0A0D14] text-white p-6 font-sans justify-center">
+    <div className="flex flex-col min-h-screen bg-[#0A0D14] text-white p-6 font-sans justify-center pb-24">
       <div className="w-full max-w-md mx-auto relative z-10">
         
         {/* Logo and Header */}
@@ -28,7 +68,7 @@ export function AuthPage() {
           transition={{ duration: 0.5 }}
           className="flex flex-col items-center mb-10"
         >
-          <div className="flex h-20 w-20 items-center justify-center rounded-3xl bg-red-500/10 mb-6 shadow-[0_0_40px_rgba(239,68,68,0.3)]">
+          <div className="flex h-20 w-20 items-center justify-center rounded-3xl bg-red-500/10 mb-6 shadow-[0_0_40px_rgba(239,68,68,0.3)] border border-red-500/20">
             <ShieldAlert className="h-10 w-10 text-red-500" />
           </div>
           <h1 className="text-3xl font-bold tracking-wide">RoadSOS</h1>
@@ -47,20 +87,33 @@ export function AuthPage() {
 
           <div className="flex bg-[#0A0D14] rounded-xl p-1 mb-6 border border-white/5 relative z-10">
             <button 
+              type="button"
               className={`flex-1 py-2.5 text-sm font-bold rounded-lg transition-all ${isLogin ? "bg-white/10 text-white shadow-lg" : "text-white/40 hover:text-white/80"}`}
-              onClick={() => setIsLogin(true)}
+              onClick={() => { setIsLogin(true); setErrorMsg(""); }}
             >
               Login
             </button>
             <button 
+              type="button"
               className={`flex-1 py-2.5 text-sm font-bold rounded-lg transition-all ${!isLogin ? "bg-white/10 text-white shadow-lg" : "text-white/40 hover:text-white/80"}`}
-              onClick={() => setIsLogin(false)}
+              onClick={() => { setIsLogin(false); setErrorMsg(""); }}
             >
               Sign Up
             </button>
           </div>
 
           <form onSubmit={handleAuth} className="space-y-4 relative z-10">
+            
+            {errorMsg && (
+              <motion.div 
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="bg-red-500/10 border border-red-500/30 text-red-500 text-sm font-medium p-3 rounded-xl text-center"
+              >
+                {errorMsg}
+              </motion.div>
+            )}
+
             <AnimatePresence mode="popLayout">
               {!isLogin && (
                 <motion.div
@@ -74,7 +127,9 @@ export function AuthPage() {
                     <input 
                       type="text" 
                       placeholder="Full Name" 
-                      required 
+                      required={!isLogin}
+                      value={fullName}
+                      onChange={(e) => setFullName(e.target.value)}
                       className="w-full bg-[#0A0D14] border border-white/10 rounded-xl py-4 pl-12 pr-4 text-white placeholder:text-white/30 focus:outline-none focus:border-red-500/50 focus:ring-1 focus:ring-red-500/50 transition-all"
                     />
                   </div>
@@ -88,6 +143,8 @@ export function AuthPage() {
                 type="email" 
                 placeholder="Email Address" 
                 required 
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
                 className="w-full bg-[#0A0D14] border border-white/10 rounded-xl py-4 pl-12 pr-4 text-white placeholder:text-white/30 focus:outline-none focus:border-red-500/50 focus:ring-1 focus:ring-red-500/50 transition-all"
               />
             </div>
@@ -98,6 +155,8 @@ export function AuthPage() {
                 type="password" 
                 placeholder="Password" 
                 required 
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
                 className="w-full bg-[#0A0D14] border border-white/10 rounded-xl py-4 pl-12 pr-4 text-white placeholder:text-white/30 focus:outline-none focus:border-red-500/50 focus:ring-1 focus:ring-red-500/50 transition-all"
               />
             </div>
@@ -112,10 +171,17 @@ export function AuthPage() {
 
             <button 
               type="submit" 
-              className="w-full flex items-center justify-center gap-2 bg-red-500 hover:bg-red-600 text-white font-bold py-4 rounded-xl shadow-[0_10px_30px_rgba(239,68,68,0.3)] active:scale-[0.98] transition-all mt-4"
+              disabled={loading}
+              className="w-full flex items-center justify-center gap-2 bg-red-500 hover:bg-red-600 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold py-4 rounded-xl shadow-[0_10px_30px_rgba(239,68,68,0.3)] active:scale-[0.98] transition-all mt-4"
             >
-              {isLogin ? "Sign In" : "Create Account"}
-              <ArrowRight className="h-5 w-5" />
+              {loading ? (
+                <Loader2 className="h-5 w-5 animate-spin" />
+              ) : (
+                <>
+                  {isLogin ? "Sign In" : "Create Account"}
+                  <ArrowRight className="h-5 w-5" />
+                </>
+              )}
             </button>
           </form>
         </motion.div>

@@ -1,10 +1,11 @@
 "use client";
 
 import React, { useEffect, useState, useRef } from "react";
-import { AlertTriangle, Maximize2, Ambulance, Wrench, Shield, Car, Loader2, ChevronRight } from "lucide-react";
+import { AlertTriangle, Ambulance, Wrench, Shield, Car, Loader2, ChevronRight } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { emergencyService } from "@/shared/api/emergencyService";
+import { supabase } from "@/shared/api/supabase";
 import { motion } from "framer-motion";
 
 // -----------------------------------------------------------------------------
@@ -15,14 +16,16 @@ const SwipeToSOS = () => {
   const [isUnlocked, setIsUnlocked] = useState(false);
   
   const handleDragEnd = (event, info) => {
-    // If swiped far enough to the right
     if (info.offset.x > 180) {
-      setIsUnlocked(true);
-      // Automatically route to Ambulance request
-      setTimeout(() => {
-        router.push("/request?type=ambulance");
-      }, 300);
+      triggerEmergency();
     }
+  };
+
+  const triggerEmergency = () => {
+    setIsUnlocked(true);
+    setTimeout(() => {
+      router.push("/request?type=ambulance");
+    }, 300);
   };
 
   return (
@@ -33,6 +36,15 @@ const SwipeToSOS = () => {
           {isUnlocked ? "DISPATCHING..." : "Swipe to SOS"}
         </span>
       </div>
+
+      {/* Screen Reader & Keyboard Fallback */}
+      <button 
+        onClick={triggerEmergency}
+        className="sr-only focus:not-sr-only focus:absolute focus:inset-0 focus:z-50 focus:bg-red-500 focus:text-white focus:font-bold focus:rounded-full"
+        aria-label="Activate Emergency SOS"
+      >
+        Trigger SOS
+      </button>
 
       {/* Swipeable Thumb */}
       <motion.div
@@ -63,6 +75,8 @@ export function Dashboard() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    let interval;
+
     const fetchRequests = async () => {
       try {
         const reqs = await emergencyService.getActiveRequests();
@@ -73,10 +87,33 @@ export function Dashboard() {
         setLoading(false);
       }
     };
+    
+    // Initial fetch
     fetchRequests();
 
-    const interval = setInterval(fetchRequests, 10000);
-    return () => clearInterval(interval);
+    // 1. Subscribe to Supabase Realtime (WebSockets)
+    let channel;
+    if (process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+      channel = supabase
+        .channel('public:emergency_requests')
+        .on(
+          'postgres_changes',
+          { event: '*', schema: 'public', table: 'emergency_requests' },
+          (payload) => {
+            console.log('Realtime Dashboard Update:', payload);
+            fetchRequests(); // Keep state synced with backend
+          }
+        )
+        .subscribe();
+    }
+
+    // 2. Fallback Polling (for local storage or socket failure)
+    interval = setInterval(fetchRequests, 10000);
+    
+    return () => {
+      clearInterval(interval);
+      if (channel) supabase.removeChannel(channel);
+    };
   }, []);
 
   const hasActiveEmergency = activeRequests.length > 0;

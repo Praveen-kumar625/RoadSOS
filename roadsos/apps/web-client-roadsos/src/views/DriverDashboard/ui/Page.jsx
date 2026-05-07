@@ -1,15 +1,20 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { Navigation, Clock, CheckCircle, AlertTriangle, Loader2 } from "lucide-react";
+import { Navigation, Clock, CheckCircle, AlertTriangle, Loader2, BellRing } from "lucide-react";
 import { emergencyService } from "@/shared/api/emergencyService";
+import { supabase } from "@/shared/api/supabase";
 import { motion, AnimatePresence } from "framer-motion";
+import { useNotifications } from "@/shared/hooks/useNotifications";
 
 export function DriverDashboard() {
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);
+  const { permission, requestPermission, triggerLocalNotification } = useNotifications();
 
   useEffect(() => {
+    let interval;
+    
     const fetchRequests = async () => {
       try {
         const reqs = await emergencyService.getActiveRequests();
@@ -20,15 +25,60 @@ export function DriverDashboard() {
         setLoading(false);
       }
     };
+    
+    // Initial fetch
     fetchRequests();
-    const interval = setInterval(fetchRequests, 5000);
-    return () => clearInterval(interval);
+
+    // 1. Subscribe to Supabase Realtime (WebSockets)
+    let channel;
+    if (process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+      channel = supabase
+        .channel('public:emergency_requests')
+        .on(
+          'postgres_changes',
+          { event: 'INSERT', schema: 'public', table: 'emergency_requests' },
+          (payload) => {
+            console.log('Realtime Emergency Update:', payload);
+            
+            // Trigger Push Notification for new emergency
+            if (payload.new && payload.new.status === 'pending') {
+              triggerLocalNotification("🚨 URGENT: New Emergency Request", {
+                body: `${payload.new.emergency_type.toUpperCase()} required at ${payload.new.location}`,
+                data: { url: "/driver" }
+              });
+            }
+
+            fetchRequests(); // Re-fetch or manually mutate state
+          }
+        )
+        .subscribe();
+    }
+
+    // 2. Fallback Polling (for local mock storage or if sockets fail)
+    interval = setInterval(fetchRequests, 5000);
+
+    return () => {
+      clearInterval(interval);
+      if (channel) supabase.removeChannel(channel);
+    };
   }, []);
 
-  const handleAccept = (id) => {
-    // Mock accepting a request by filtering it out
-    // In a real app, we would update the status in Supabase
+  const handleAccept = async (id) => {
+    // Optimistic UI update
     setRequests(prev => prev.filter(req => req.id !== id));
+    
+    // If we have Supabase, actually update the status
+    if (process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+      await supabase
+        .from('emergency_requests')
+        .update({ status: 'accepted' })
+        .eq('id', id);
+    } else {
+      // Mock update for local storage
+      const existing = JSON.parse(localStorage.getItem('mock_emergencies') || '[]');
+      const updated = existing.map(req => req.id === id ? { ...req, status: 'accepted' } : req);
+      localStorage.setItem('mock_emergencies', JSON.stringify(updated));
+    }
   };
 
   return (
@@ -38,8 +88,19 @@ export function DriverDashboard() {
           <h1 className="text-2xl font-bold text-white">Responder Hub</h1>
           <p className="text-white/60 text-sm">You are currently online and available.</p>
         </div>
-        <div className="h-12 w-12 rounded-full bg-green-500/20 flex items-center justify-center border border-green-500/30">
-          <div className="h-4 w-4 rounded-full bg-green-500 animate-pulse" />
+        <div className="flex items-center gap-3">
+          {permission !== 'granted' && (
+            <button 
+              onClick={requestPermission}
+              className="h-10 px-3 bg-red-500/20 hover:bg-red-500/30 text-red-500 rounded-full flex items-center gap-2 text-sm font-bold border border-red-500/30 transition-colors"
+            >
+              <BellRing className="h-4 w-4" />
+              <span className="hidden sm:inline">Enable Alerts</span>
+            </button>
+          )}
+          <div className="h-12 w-12 rounded-full bg-green-500/20 flex items-center justify-center border border-green-500/30">
+            <div className="h-4 w-4 rounded-full bg-green-500 animate-pulse" />
+          </div>
         </div>
       </div>
 
