@@ -4,7 +4,7 @@
  * Project: RoadSoS (IIT Madras Hackathon)
  */
 
-import dgram from 'node:dgram';
+import mqtts from 'mqtts';
 import { persistenceService } from '../services/persistence-service.js';
 import { queueV2 } from '../services/queue-service.js';
 import { PayloadSerializer } from '../../../edge-iot-firmware/src/communication/payload-serializer.js';
@@ -15,7 +15,10 @@ import { PayloadSerializer } from '../../../edge-iot-firmware/src/communication/
  */
 export class UDPIngestionGateway {
   constructor(port = 1884) {
-    this.server = dgram.createSocket('udp4');
+    this.server = mqtts.createServer({
+      // QoS 0 (fire-and-forget) to reduce latency and eliminate TCP 3-way handshake overhead
+      qos: 0 
+    });
     this.port = port;
 
     this.server.on('error', (err) => {
@@ -23,18 +26,17 @@ export class UDPIngestionGateway {
       this.server.close();
     });
 
-    this.server.on('message', async (msg, rinfo) => {
-      await this.handleSOS(msg, rinfo);
+    this.server.on('publish', async (packet, client) => {
+      await this.handleSOS(packet.payload, client);
     });
 
-    this.server.on('listening', () => {
-      const address = this.server.address();
-      console.log(`📡 [UDP-Gateway] Listening on ${address.address}:${address.port} (MQTT-SN Protocol)`);
+    this.server.on('ready', () => {
+      console.log(`📡 [UDP-Gateway] Listening on port ${this.port} (MQTT-SN Protocol)`);
     });
   }
 
   start() {
-    this.server.bind(this.port);
+    this.server.listen(this.port);
   }
 
   /**

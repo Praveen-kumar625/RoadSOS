@@ -24,7 +24,11 @@
 
 @layer components {
   .glass-card {
-    @apply bg-[#1C1C1E]/60 backdrop-blur-xl border border-white/10 rounded-[28px] shadow-2xl;
+    @apply bg-[#1C1C1E]/60 backdrop-blur-md border border-white/10 rounded-[28px] shadow-2xl;
+  }
+  
+  .glass-panel {
+    @apply bg-white/5 backdrop-blur-md border border-white/10 rounded-2xl;
   }
   
   .emergency-button {
@@ -48,7 +52,7 @@
   }
 
   .input-field {
-    @apply bg-white/5 border border-white/10 rounded-2xl px-4 py-3.5 focus:outline-none focus:ring-1 focus:ring-primary/40 transition-all;
+    @apply bg-white/5 border border-white/10 rounded-2xl px-4 py-3.5 focus:outline-none focus:ring-1 focus:ring-primary transition-all;
   }
 }
 

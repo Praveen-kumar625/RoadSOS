@@ -1,10 +1,11 @@
 /** @type {import('tailwindcss').Config} */
-export default {
+module.exports = {
   darkMode: ["class"],
   content: [
     './src/**/*.{js,jsx,ts,tsx}',
     './app/**/*.{js,jsx,ts,tsx}',
     './components/**/*.{js,jsx,ts,tsx}',
+    './shared/**/*.{js,jsx,ts,tsx}',
   ],
   theme: {
     extend: {
@@ -19,6 +20,7 @@ export default {
         foreground: "#FFFFFF",
         primary: {
           DEFAULT: "#EF4444",
+          dark: "#DC2626",
           foreground: "#FFFFFF",
         },
         secondary: {

@@ -28,6 +28,7 @@ const envSchema = z.object({
   SUPABASE_URL: z.string().url(),
   SUPABASE_SERVICE_ROLE_KEY: z.string().min(1, "Service role key required for administrative spatial operations"),
   SUPABASE_DB_PASSWORD: z.string().min(1),
+  DB_URL: z.string().url("DB_URL must be a valid URL"),
   
   // Upstash Redis (State & Pub/Sub)
   UPSTASH_REDIS_REST_URL: z.string().url(),
@@ -58,14 +59,13 @@ export const loadHardenedConfig = async () => {
     REDIS_URL: vaultSecrets.REDIS_URL || 'rediss://default:gQAAAAAAAUGUAAIgcDIyOTVjZTFmOGI3NGY0OGJkYTBkYWI5MzQ1M2YyZDBiNg@enough-sheep-82324.upstash.io:6379'
   };
 
-  const _env = envSchema.safeParse(config);
-
-  if (!_env.success) {
-    console.error('❌ [CRITICAL] Environment Validation Failed:', JSON.stringify(_env.error.format(), null, 2));
+  try {
+    const _env = envSchema.parse(config);
+    return _env;
+  } catch (error) {
+    console.error('❌ [CRITICAL] Environment Validation Failed:', JSON.stringify(error.format(), null, 2));
     process.exit(1);
   }
-
-  return _env.data;
 };
 
 // Initial stub for legacy sync imports - will be populated by startServer()

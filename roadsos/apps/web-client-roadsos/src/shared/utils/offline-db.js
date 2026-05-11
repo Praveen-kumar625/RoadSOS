@@ -1,64 +1,49 @@
-/**
- * Team Name: Divine coder
- * Team Lead: Praveen kumar
- * Project: RoadSoS (IIT Madras Hackathon)
- */
+export const dbName = 'RoadSoSDatabase';
+export const storeName = 'sync-queue';
 
-import { openDB } from 'idb';
-
-const DB_NAME = 'RoadSoS_Offline_Core';
-const STORE_NAME = 'pending_sos';
-
-/**
- * INITIALIZE INDEXED_DB FOR OFFLINE PERSISTENCE
- */
-export const initDB = async () => {
-  return openDB(DB_NAME, 1, {
-    upgrade(db) {
-      if (!db.objectStoreNames.contains(STORE_NAME)) {
-        db.createObjectStore(STORE_NAME, { keyPath: 'id', autoIncrement: true });
+export function openDB() {
+  return new Promise((resolve, reject) => {
+    const request = indexedDB.open(dbName, 1);
+    request.onupgradeneeded = (event) => {
+      const db = event.target.result;
+      if (!db.objectStoreNames.contains(storeName)) {
+        db.createObjectStore(storeName, { keyPath: 'id' });
       }
-    },
+    };
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
   });
-};
+}
 
-/**
- * QUEUE SOS REQUEST WHEN OFFLINE
- */
-export const queueOfflineSOS = async (sosData) => {
-  const db = await initDB();
-  const entry = {
-    ...sosData,
-    timestamp: Date.now(),
-    status: 'QUEUED_OFFLINE'
-  };
-  
-  await db.add(STORE_NAME, entry);
-  console.log("[Offline-DB] SOS stored locally. Background sync pending.");
+export async function saveToQueue(task) {
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(storeName, 'readwrite');
+    const store = tx.objectStore(storeName);
+    store.put(task);
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+  });
+}
 
-  // TRIGGER BACKGROUND SYNC IF SERVICE WORKER SUPPORTED
-  if ('serviceWorker' in navigator && 'SyncManager' in window) {
-    try {
-      const registration = await navigator.serviceWorker.ready;
-      await registration.sync.register('sync-sos-events');
-    } catch (e) {
-      console.warn("[Offline-DB] Background Sync Registration Failed, will retry on next load.");
-    }
-  }
-};
+export async function getQueue() {
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(storeName, 'readonly');
+    const store = tx.objectStore(storeName);
+    const request = store.getAll();
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+  });
+}
 
-/**
- * RETRIEVE ALL PENDING SOS EVENTS
- */
-export const getPendingSOS = async () => {
-  const db = await initDB();
-  return db.getAll(STORE_NAME);
-};
-
-/**
- * CLEAR PROCESSED ENTRIES
- */
-export const clearSOS = async (id) => {
-  const db = await initDB();
-  await db.delete(STORE_NAME, id);
-};
+export async function removeFromQueue(id) {
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(storeName, 'readwrite');
+    const store = tx.objectStore(storeName);
+    store.delete(id);
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+  });
+}

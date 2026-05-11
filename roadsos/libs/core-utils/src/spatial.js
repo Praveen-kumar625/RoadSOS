@@ -24,7 +24,7 @@ export function getSpatialCell(lat, lon, resolution = 7) {
  * Retrieves neighboring cells (disk) to handle boundary artifacts.
  * Uses h3.gridDisk for O(1) adjacency lookup.
  */
-export function getNeighboringCells(cellId, ringSize = 1) {
+export function getNeighboringCells(cellId, ringSize = 2) {
   return h3.gridDisk(cellId, ringSize);
 }
 

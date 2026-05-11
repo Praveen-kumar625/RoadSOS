@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { saveToQueue, getQueue, removeFromQueue } from "../utils/offline-db";
 
 interface SyncTask<T = any> {
   id: string;
@@ -27,15 +28,19 @@ export function useOfflineSync() {
     window.addEventListener("online", handleOnline);
     window.addEventListener("offline", handleOffline);
 
-    // Load queue from localStorage
-    const storedQueue = localStorage.getItem("roadsos_sync_queue");
-    if (storedQueue) {
-      try {
-        setSyncQueue(JSON.parse(storedQueue));
-      } catch (err) {
-        console.error("Failed to parse sync queue", err);
-      }
+    // Register Background Sync if supported
+    if ('serviceWorker' in navigator && 'SyncManager' in window) {
+      navigator.serviceWorker.ready.then(registration => {
+        registration.sync.register('sync-emergency-requests').catch(console.error);
+      });
     }
+
+    // Load queue from IndexedDB
+    getQueue().then((queue) => {
+      setSyncQueue(queue as SyncTask[]);
+    }).catch(err => {
+      console.error("Failed to load sync queue from IndexedDB", err);
+    });
 
     return () => {
       window.removeEventListener("online", handleOnline);
@@ -52,14 +57,12 @@ export function useOfflineSync() {
 
   const processQueue = async () => {
     setIsSyncing(true);
-    let remainingQueue = [...syncQueue];
+    const currentQueue = await getQueue() as SyncTask[];
 
-    for (const task of syncQueue) {
+    for (const task of currentQueue) {
       try {
         console.log(`Syncing offline task ${task.id} to ${task.endpoint}`);
         
-        // Dynamically process based on endpoint or task type
-        // In this app, we primarily have emergency requests
         if (task.endpoint === "/api/emergencies") {
           const { emergencyService } = await import("@/shared/api/emergencyService");
           const result = await emergencyService.submitRequest(task.payload);
@@ -71,21 +74,20 @@ export function useOfflineSync() {
           await new Promise((resolve) => setTimeout(resolve, 1000));
         }
         
-        // On success, remove from queue
-        remainingQueue = remainingQueue.filter((t) => t.id !== task.id);
+        // On success, remove from IndexedDB and local state
+        await removeFromQueue(task.id);
+        setSyncQueue(prev => prev.filter(t => t.id !== task.id));
       } catch (err) {
         console.error(`Failed to sync task ${task.id}`, err);
         // Break the loop on first failure to retry later
         break;
       }
     }
-
-    setSyncQueue(remainingQueue);
-    localStorage.setItem("roadsos_sync_queue", JSON.stringify(remainingQueue));
+    
     setIsSyncing(false);
   };
 
-  const queueRequest = useCallback((endpoint: string, payload: any) => {
+  const queueRequest = useCallback(async (endpoint: string, payload: any) => {
     const newTask: SyncTask = {
       id: Math.random().toString(36).substring(2, 9),
       payload,
@@ -93,11 +95,8 @@ export function useOfflineSync() {
       timestamp: Date.now(),
     };
 
-    setSyncQueue((prev) => {
-      const newQueue = [...prev, newTask];
-      localStorage.setItem("roadsos_sync_queue", JSON.stringify(newQueue));
-      return newQueue;
-    });
+    await saveToQueue(newTask);
+    setSyncQueue((prev) => [...prev, newTask]);
 
     if (!isOffline && !isSyncing) {
       processQueue();
