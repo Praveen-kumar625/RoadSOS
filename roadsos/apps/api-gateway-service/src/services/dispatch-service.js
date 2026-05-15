@@ -1,14 +1,7 @@
-/**
- * Team Name: Divine coder
- * Team Lead: Praveen kumar
- * Project: RoadSoS (IIT Madras Hackathon)
- * Protocol: Ralph Loop (Greenfield Optimized)
- */
 
-import { createClient } from '@supabase/supabase-js';
-import { ENV } from '../../config/env.js';
-import { livenessService } from './liveness-service.js';
-import { getSpatialCell, getNeighboringCells } from '../../../../libs/core-utils/src/spatial.js';
+import { createClient } from "@supabase/supabase-js";
+import { ENV } from "../../config/env.js";
+import { livenessService } from "./liveness-service.js";
 
 /**
  * HYPER-OPTIMIZED DISPATCH ORCHESTRATOR (H3 HARDENED)
@@ -31,7 +24,7 @@ export class OptimizedDispatchService {
 
     try {
       // Step 1: Broad Discovery via PostGIS (O(log N))
-      const { data: potentialResponders, error } = await this.supabase.rpc('get_nearby_responders_v2', {
+      const { data: potentialResponders, error } = await this.supabase.rpc("get_nearby_responders_v2", {
         target_lat: lat,
         target_lon: lon,
         radius_meters: 10000,
@@ -60,14 +53,14 @@ export class OptimizedDispatchService {
       // Step 4: Atomic State Handover
       const dispatchState = {
         incidentId: crashData.id,
-        status: 'DISPATCHED',
+        status: "DISPATCHED",
         responder: primaryResponder,
         eta_minutes: Math.ceil(primaryResponder.dist_meters / 450),
-        spatial_engine: 'Hybrid_PostGIS_H3'
+        spatial_engine: "Hybrid_PostGIS_H3"
       };
 
       // Step 5: Broadcast to Stakeholders
-      this.io.to(`incident_${crashData.id}`).emit('responder_assigned', dispatchState);
+      this.io.to(`incident_${crashData.id}`).emit("responder_assigned", dispatchState);
       
       console.log(`✅ [Dispatch] Assigned Liveness-Verified ${primaryResponder.name} (ETA: ${dispatchState.eta_minutes}m)`);
       return dispatchState;
@@ -80,6 +73,6 @@ export class OptimizedDispatchService {
 
   escalateToHuman(incident, reason) {
     console.warn(`⚠️ [Escalation] Manual intervention required for ${incident.id}: ${reason}`);
-    this.io.emit('manual_intervention_required', { incident, reason });
+    this.io.emit("manual_intervention_required", { incident, reason });
   }
 }

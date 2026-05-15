@@ -4,9 +4,9 @@
  * Project: RoadSoS (IIT Madras Hackathon)
  */
 
-import Redis from 'ioredis';
-import { ENV } from '../config/env.js';
-import { getSpatialCell } from '../../../../libs/core-utils/src/spatial.js';
+import Redis from "ioredis";
+import { ENV } from "../config/env.js";
+import { getSpatialCell } from "../../../../libs/core-utils/src/spatial.js";
 
 /**
  * PRODUCTION LIVENESS ENGINE (UBER H3 + REDIS)
@@ -16,7 +16,7 @@ export class LivenessService {
   constructor() {
     this.client = new Redis(ENV.REDIS_URL);
     this.TTL_SECONDS = 300; // 5 min heartbeat TTL
-    this.CELL_PREFIX = 'v2:liveness:cell';
+    this.CELL_PREFIX = "v2:liveness:cell";
   }
 
   /**
@@ -33,7 +33,7 @@ export class LivenessService {
     pipeline.expire(key, this.TTL_SECONDS);
     
     // Also track responder's current location/status
-    pipeline.set(`v2:responder:${responderId}:pos`, JSON.stringify({ lat, lon, cellId, ts: Date.now() }), 'EX', this.TTL_SECONDS);
+    pipeline.set(`v2:responder:${responderId}:pos`, JSON.stringify({ lat, lon, cellId, ts: Date.now() }), "EX", this.TTL_SECONDS);
     
     await pipeline.exec();
     console.log(`📡 [Liveness] Heartbeat from ${responderId} in cell ${cellId}`);

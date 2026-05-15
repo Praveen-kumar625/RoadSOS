@@ -4,8 +4,8 @@
  * Project: RoadSoS (IIT Madras Hackathon)
  */
 
-import Redis from 'ioredis';
-import { ENV } from '../config/env.js';
+import Redis from "ioredis";
+import { ENV } from "../config/env.js";
 
 /**
  * PRODUCTION PERSISTENCE ENGINE (REDIS STREAMS)
@@ -14,10 +14,10 @@ import { ENV } from '../config/env.js';
 export class PersistenceService {
   constructor() {
     this.client = new Redis(ENV.REDIS_URL);
-    this.STREAM_KEY = 'v2:sos:events';
-    this.STATE_PREFIX = 'v2:incident';
+    this.STREAM_KEY = "v2:sos:events";
+    this.STATE_PREFIX = "v2:incident";
     
-    this.client.on('error', (err) => console.error('❌ [Persistence] Redis Error:', err));
+    this.client.on("error", (err) => console.error("❌ [Persistence] Redis Error:", err));
   }
 
   /**
@@ -30,18 +30,18 @@ export class PersistenceService {
     try {
       const eventId = await this.client.xadd(
         this.STREAM_KEY,
-        '*', // Auto-generate ID
-        'hardware_id', hardware_id,
-        'timestamp', timestamp,
-        'telemetry', JSON.stringify(telemetry),
-        'location', JSON.stringify(location),
-        'type', 'CRASH_INGESTED'
+        "*", // Auto-generate ID
+        "hardware_id", hardware_id,
+        "timestamp", timestamp,
+        "telemetry", JSON.stringify(telemetry),
+        "location", JSON.stringify(location),
+        "type", "CRASH_INGESTED"
       );
       
       console.log(`✅ [Persistence] Event durable in stream: ${eventId}`);
       return eventId;
     } catch (err) {
-      console.error('🚨 [Persistence] Stream Append Failure:', err.message);
+      console.error("🚨 [Persistence] Stream Append Failure:", err.message);
       throw err; // Fail-fast on ingestion
     }
   }
@@ -51,13 +51,13 @@ export class PersistenceService {
    * Reconstructs the city's active emergency state from the stream on boot.
    */
   async hydrateState() {
-    console.log('🔄 [Persistence] Hydrating city state from Redis Streams...');
+    console.log("🔄 [Persistence] Hydrating city state from Redis Streams...");
     
     // Read from beginning of stream
-    const events = await this.client.xread('STREAMS', this.STREAM_KEY, '0-0');
+    const events = await this.client.xread("STREAMS", this.STREAM_KEY, "0-0");
     if (!events || events.length === 0) return {};
 
-    const [streamName, data] = events[0];
+    const [_streamName, data] = events[0];
     const incidents = {};
 
     data.forEach(([id, fields]) => {
@@ -74,7 +74,7 @@ export class PersistenceService {
         timestamp: entry.timestamp,
         telemetry: JSON.parse(entry.telemetry),
         location: JSON.parse(entry.location),
-        status: 'HYDRATED'
+        status: "HYDRATED"
       };
     });
 
@@ -88,8 +88,8 @@ export class PersistenceService {
    */
   async checkIdempotency(hardwareId, eventHash) {
     const key = `v2:idempotency:${hardwareId}:${eventHash}`;
-    const result = await this.client.set(key, '1', 'NX', 'EX', 86400);
-    return result === 'OK';
+    const result = await this.client.set(key, "1", "NX", "EX", 86400);
+    return result === "OK";
   }
 
   /**
@@ -100,8 +100,8 @@ export class PersistenceService {
     const key = `${this.STATE_PREFIX}:${incidentId}:state`;
     
     const pipeline = this.client.pipeline();
-    pipeline.set(key, JSON.stringify(state), 'EX', 86400);
-    pipeline.publish('v2_dispatch_updates', JSON.stringify({ incidentId, state }));
+    pipeline.set(key, JSON.stringify(state), "EX", 86400);
+    pipeline.publish("v2_dispatch_updates", JSON.stringify({ incidentId, state }));
     
     await pipeline.exec();
   }

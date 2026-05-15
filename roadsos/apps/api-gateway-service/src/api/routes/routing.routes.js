@@ -1,1 +1,1 @@
-import { Router } from 'express'; export const routingRouter = Router();
+import { Router } from "express"; export const routingRouter = Router();

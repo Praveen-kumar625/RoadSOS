@@ -4,7 +4,7 @@
  * Project: RoadSoS (IIT Madras Hackathon)
  */
 
-import axios from 'axios';
+import axios from "axios";
 
 /**
  * FETCH REAL-TIME HOSPITALS FROM OPENSTREETMAP (Overpass API)
@@ -14,8 +14,8 @@ export const fetchNearbyHospitals = async (lat, lon, radius = 5000) => {
   try {
     const query = `[out:json][timeout:15];(node["amenity"="hospital"](around:${radius},${lat},${lon});way["amenity"="hospital"](around:${radius},${lat},${lon}););out center;`;
     
-    const response = await axios.post('https://overpass-api.de/api/interpreter', query, {
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
+    const response = await axios.post("https://overpass-api.de/api/interpreter", query, {
+      headers: { "Content-Type": "application/x-www-form-urlencoded" }
     });
 
     return response.data.elements.map(h => {
@@ -26,9 +26,9 @@ export const fetchNearbyHospitals = async (lat, lon, radius = 5000) => {
         name: h.tags?.name || "Verified Emergency Center",
         lat: hLat,
         lon: hLon,
-        category: 'hospital',
-        address: h.tags?.['addr:street'] || 'Primary Road Network',
-        has_icu: h.tags?.['emergency'] === 'yes' || Math.random() > 0.5, // Augmented with load logic
+        category: "hospital",
+        address: h.tags?.["addr:street"] || "Primary Road Network",
+        has_icu: h.tags?.["emergency"] === "yes" || Math.random() > 0.5, // Augmented with load logic
         current_load: Math.floor(Math.random() * 80) // Real-time Load Simulation
       };
     });

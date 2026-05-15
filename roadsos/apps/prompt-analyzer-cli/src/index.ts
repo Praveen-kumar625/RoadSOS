@@ -1,4 +1,4 @@
-#!/usr/bin/env bun
+#!/usr/bin/env node
 /**
  * Team Name: Divine coder
  * Team Lead: Praveen kumar
@@ -26,10 +26,12 @@ program
       if (file) {
         content = readFileSync(file, 'utf-8');
       } else {
-        // Read from stdin
-        for await (const chunk of Bun.stdin.stream()) {
-          content += Buffer.from(chunk).toString();
-        }
+        // Read from stdin (Node compatible)
+        content = await new Promise((resolve) => {
+          let data = '';
+          process.stdin.on('data', (chunk: Buffer) => data += chunk.toString());
+          process.stdin.on('end', () => resolve(data));
+        });
       }
 
       if (!content.trim()) {

@@ -1,1 +1,1 @@
-import { Router } from 'express'; export const healthRouter = Router();
+import { Router } from "express"; export const healthRouter = Router();

@@ -1,13 +1,7 @@
-/**
- * Team Name: Divine coder
- * Team Lead: Praveen kumar
- * Project: RoadSoS (IIT Madras Hackathon)
- * Protocol: Ralph Loop (Greenfield Optimized)
- */
 
-import { z } from 'zod';
-import { config } from 'dotenv';
-import { vaultService } from '../services/vault-service.js';
+import { z } from "zod";
+import { config } from "dotenv";
+import { vaultService } from "../services/vault-service.js";
 
 // Auto-load .env for local development fallback
 config();
@@ -18,8 +12,8 @@ config();
  */
 const envSchema = z.object({
   // Infrastructure
-  PORT: z.string().transform(Number).default('5000'),
-  NODE_ENV: z.enum(['development', 'production', 'test']).default('production'),
+  PORT: z.string().transform(Number).default("5000"),
+  NODE_ENV: z.enum(["development", "production", "test"]).default("production"),
   
   // Security
   JWT_SECRET: z.string().min(32, "JWT_SECRET must be at least 32 characters for HS256 integrity"),
@@ -39,7 +33,7 @@ const envSchema = z.object({
   HF_TOKEN: z.string().min(1, "HuggingFace token required for Aegis-Core inference"),
   
   // Logging
-  LOG_LEVEL: z.enum(['debug', 'info', 'warn', 'error']).default('info')
+  LOG_LEVEL: z.enum(["debug", "info", "warn", "error"]).default("info")
 });
 
 /**
@@ -53,17 +47,17 @@ export const loadHardenedConfig = async () => {
     ...process.env,
     ...vaultSecrets,
     // Baseline hardcoded production endpoints (to be moved to Vault in next pass)
-    SUPABASE_URL: vaultSecrets.SUPABASE_URL || 'https://raeiaewxsdxgzumyafiw.supabase.co',
-    UPSTASH_REDIS_REST_URL: vaultSecrets.UPSTASH_REDIS_REST_URL || 'https://enough-sheep-82324.upstash.io',
-    UPSTASH_REDIS_REST_TOKEN: vaultSecrets.UPSTASH_REDIS_REST_TOKEN || 'gQAAAAAAAUGUAAIgcDIyOTVjZTFmOGI3NGY0OGJkYTBkYWI5MzQ1M2YyZDBiNg',
-    REDIS_URL: vaultSecrets.REDIS_URL || 'rediss://default:gQAAAAAAAUGUAAIgcDIyOTVjZTFmOGI3NGY0OGJkYTBkYWI5MzQ1M2YyZDBiNg@enough-sheep-82324.upstash.io:6379'
+    SUPABASE_URL: vaultSecrets.SUPABASE_URL || "https://raeiaewxsdxgzumyafiw.supabase.co",
+    UPSTASH_REDIS_REST_URL: vaultSecrets.UPSTASH_REDIS_REST_URL || "https://enough-sheep-82324.upstash.io",
+    UPSTASH_REDIS_REST_TOKEN: vaultSecrets.UPSTASH_REDIS_REST_TOKEN || "gQAAAAAAAUGUAAIgcDIyOTVjZTFmOGI3NGY0OGJkYTBkYWI5MzQ1M2YyZDBiNg",
+    REDIS_URL: vaultSecrets.REDIS_URL || "rediss://default:gQAAAAAAAUGUAAIgcDIyOTVjZTFmOGI3NGY0OGJkYTBkYWI5MzQ1M2YyZDBiNg@enough-sheep-82324.upstash.io:6379"
   };
 
   try {
     const _env = envSchema.parse(config);
     return _env;
   } catch (error) {
-    console.error('❌ [CRITICAL] Environment Validation Failed:', JSON.stringify(error.format(), null, 2));
+    console.error("❌ [CRITICAL] Environment Validation Failed:", JSON.stringify(error.format(), null, 2));
     process.exit(1);
   }
 };

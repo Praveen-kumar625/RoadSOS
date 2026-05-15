@@ -4,8 +4,8 @@
  * Project: RoadSoS (IIT Madras Hackathon)
  */
 
-import jwt from 'jsonwebtoken';
-import { ENV } from '../config/env.js';
+import jwt from "jsonwebtoken";
+import { ENV } from "../config/env.js";
 
 /**
  * Hardened Zero-Trust Auth Middleware
@@ -14,14 +14,14 @@ import { ENV } from '../config/env.js';
 export const auth = (req, res, next) => {
   const authHeader = req.headers.authorization;
 
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+  if (!authHeader || !authHeader.startsWith("Bearer ")) {
     return res.status(401).json({ 
-      error: 'UNAUTHORIZED', 
-      detail: 'Missing or malformed authorization header' 
+      error: "UNAUTHORIZED", 
+      detail: "Missing or malformed authorization header" 
     });
   }
 
-  const token = authHeader.split(' ')[1];
+  const token = authHeader.split(" ")[1];
 
   try {
     const decoded = jwt.verify(token, ENV.JWT_SECRET);
@@ -29,8 +29,8 @@ export const auth = (req, res, next) => {
     next();
   } catch (error) {
     return res.status(403).json({ 
-      error: 'FORBIDDEN', 
-      detail: 'Invalid or expired token' 
+      error: "FORBIDDEN", 
+      detail: "Invalid or expired token" 
     });
   }
 };

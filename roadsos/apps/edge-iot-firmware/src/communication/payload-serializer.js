@@ -1,9 +1,3 @@
-/**
- * Team Name: Divine coder
- * Team Lead: Praveen kumar
- * Project: RoadSoS (IIT Madras Hackathon)
- * Protocol: Ralph Loop (Greenfield Optimized)
- */
 
 import msgpack from 'msgpack-lite';
 

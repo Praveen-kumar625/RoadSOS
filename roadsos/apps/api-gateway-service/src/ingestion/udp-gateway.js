@@ -4,10 +4,10 @@
  * Project: RoadSoS (IIT Madras Hackathon)
  */
 
-import mqtts from 'mqtts';
-import { persistenceService } from '../services/persistence-service.js';
-import { queueV2 } from '../services/queue-service.js';
-import { PayloadSerializer } from '../../../edge-iot-firmware/src/communication/payload-serializer.js';
+import mqtts from "mqtts";
+import { persistenceService } from "../services/persistence-service.js";
+import { queueV2 } from "../services/queue-service.js";
+import { PayloadSerializer } from "../../../edge-iot-firmware/src/communication/payload-serializer.js";
 
 /**
  * PRODUCTION MQTT-SN INSPIRED UDP GATEWAY
@@ -21,16 +21,16 @@ export class UDPIngestionGateway {
     });
     this.port = port;
 
-    this.server.on('error', (err) => {
+    this.server.on("error", (err) => {
       console.error(`🚨 [UDP-Gateway] Server Error:\n${err.stack}`);
       this.server.close();
     });
 
-    this.server.on('publish', async (packet, client) => {
+    this.server.on("publish", async (packet, client) => {
       await this.handleSOS(packet.payload, client);
     });
 
-    this.server.on('ready', () => {
+    this.server.on("ready", () => {
       console.log(`📡 [UDP-Gateway] Listening on port ${this.port} (MQTT-SN Protocol)`);
     });
   }
@@ -67,7 +67,7 @@ export class UDPIngestionGateway {
       });
 
     } catch (err) {
-      console.error('❌ [UDP-Gateway] Packet Ingestion Failed:', err.message);
+      console.error("❌ [UDP-Gateway] Packet Ingestion Failed:", err.message);
     }
   }
 }

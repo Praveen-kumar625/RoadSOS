@@ -4,11 +4,11 @@
  * Project: RoadSoS (IIT Madras Hackathon)
  */
 
-import { Worker } from 'bullmq';
-import axios from 'axios';
-import { ENV } from '../config/env.js';
-import { persistenceService } from '../services/persistence-service.js';
-import { OptimizedDispatchService } from '../services/dispatch-service.js';
+import { Worker } from "bullmq";
+import axios from "axios";
+import { ENV } from "../config/env.js";
+import { persistenceService } from "../services/persistence-service.js";
+import { OptimizedDispatchService } from "../services/dispatch-service.js";
 
 /**
  * PRODUCTION-GRADE CRASH TRIAGE WORKER
@@ -17,29 +17,29 @@ export class CrashTriageWorker {
   constructor(io) {
     this.connection = {
       host: new URL(ENV.REDIS_URL).hostname,
-      port: parseInt(new URL(ENV.REDIS_URL).port || '6379', 10),
+      port: parseInt(new URL(ENV.REDIS_URL).port || "6379", 10),
       password: new URL(ENV.REDIS_URL).password || undefined,
-      tls: ENV.REDIS_URL.startsWith('rediss') ? {} : undefined
+      tls: ENV.REDIS_URL.startsWith("rediss") ? {} : undefined
     };
 
     this.dispatchService = new OptimizedDispatchService(io);
-    this.aiServiceUrl = process.env.AI_TRIAGE_URL || 'http://localhost:8000/predict';
+    this.aiServiceUrl = process.env.AI_TRIAGE_URL || "http://localhost:8000/predict";
 
-    this.worker = new Worker('crash_processing', async (job) => {
+    this.worker = new Worker("crash_processing", async (job) => {
       return await this.handleJob(job.data);
     }, { 
       connection: this.connection,
       concurrency: 5
     });
 
-    console.log('👷 [Worker] Crash Triage Processor Online');
+    console.log("👷 [Worker] Crash Triage Processor Online");
   }
 
   async handleJob(payload) {
     const { incidentId, telemetry, location, timestamp, vehicle_class } = payload;
     
     try {
-      const vehicleMap = { 'L3': 0, 'L5': 0, 'M1': 1, 'N1': 2 };
+      const vehicleMap = { "L3": 0, "L5": 0, "M1": 1, "N1": 2 };
       const impact_g = telemetry.resultant_a || 0;
       
       // 1. Execute AI Triage (Random Forest)
@@ -54,7 +54,7 @@ export class CrashTriageWorker {
         triageResult = response.data;
       } catch (aiErr) {
         // Tier-1 Heuristic Fallback
-        triageResult = { triage_level: impact_g > 20 ? 'CRITICAL' : 'MODERATE' };
+        triageResult = { triage_level: impact_g > 20 ? "CRITICAL" : "MODERATE" };
       }
 
       const crashContext = {
@@ -62,7 +62,7 @@ export class CrashTriageWorker {
         location,
         analysis: {
           severity: triageResult.triage_level,
-          requiresIcu: triageResult.triage_level === 'CRITICAL'
+          requiresIcu: triageResult.triage_level === "CRITICAL"
         }
       };
 
@@ -76,12 +76,12 @@ export class CrashTriageWorker {
         ...triageResult,
         ...dispatchResult,
         processed_at: Date.now(),
-        status: 'DISPATCHED'
+        status: "DISPATCHED"
       });
 
       return triageResult;
     } catch (error) {
-      console.error(`🚨 [Worker] Failure:`, error.message);
+      console.error("🚨 [Worker] Failure:", error.message);
       throw error;
     }
   }

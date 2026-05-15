@@ -1,1 +1,1 @@
-import { Router } from 'express'; export const complianceRouter = Router();
+import { Router } from "express"; export const complianceRouter = Router();

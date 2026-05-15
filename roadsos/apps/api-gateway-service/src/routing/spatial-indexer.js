@@ -4,8 +4,8 @@
  * Project: RoadSoS (IIT Madras Hackathon)
  */
 
-import { ENV } from '../config/env.js';
-import axios from 'axios';
+import { ENV } from "../config/env.js";
+import axios from "axios";
 
 /**
  * HIGH-PERFORMANCE SPATIAL DISPATCH QUERIES (O(log N))
@@ -14,10 +14,10 @@ import axios from 'axios';
 
 const SUPABASE_REST_URL = `${ENV.SUPABASE_URL}/rest/v1`;
 const HEADERS = {
-  'apikey': ENV.SUPABASE_KEY,
-  'Authorization': `Bearer ${ENV.SUPABASE_KEY}`,
-  'Content-Type': 'application/json',
-  'Prefer': 'return=representation'
+  "apikey": ENV.SUPABASE_KEY,
+  "Authorization": `Bearer ${ENV.SUPABASE_KEY}`,
+  "Content-Type": "application/json",
+  "Prefer": "return=representation"
 };
 
 /**

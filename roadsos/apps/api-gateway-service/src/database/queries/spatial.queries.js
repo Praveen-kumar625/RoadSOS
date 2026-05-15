@@ -1,9 +1,3 @@
-/**
- * Team Name: Divine coder
- * Team Lead: Praveen kumar
- * Project: RoadSoS (IIT Madras Hackathon)
- * Protocol: Ralph Loop (Greenfield Optimized)
- */
 
 /**
  * O(log N) OPTIMIZED SPATIAL QUERIES

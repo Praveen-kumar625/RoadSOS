@@ -1,8 +1,10 @@
 "use client";
 import React, { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { AlertTriangle, MapPin, Phone, ShieldAlert, Navigation, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { emergencyService } from "@/shared/api/emergencyService";
+import { supabase } from "@/shared/api/supabase";
 
 export function AmbulanceTracker() {
   const [activeRequest, setActiveRequest] = useState(null);

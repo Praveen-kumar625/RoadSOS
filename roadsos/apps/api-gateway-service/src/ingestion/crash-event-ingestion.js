@@ -4,14 +4,14 @@
  * Project: RoadSoS (IIT Madras Hackathon)
  */
 
-import { HfInference } from '@huggingface/inference';
-import { z } from 'zod';
+import { HfInference } from "@huggingface/inference";
+import { z } from "zod";
 
-const hf = new HfInference(process.env.HF_TOKEN || 'dummy_token');
+const hf = new HfInference(process.env.HF_TOKEN || "dummy_token");
 
 const crashSchema = z.object({
   isCrash: z.boolean(),
-  severity: z.enum(['CRITICAL', 'MODERATE', 'NOMINAL']),
+  severity: z.enum(["CRITICAL", "MODERATE", "NOMINAL"]),
   confidence: z.number().min(0).max(1)
 });
 
@@ -32,9 +32,9 @@ ${JSON.stringify(telemetry)}
 
   try {
     const res = await hf.chatCompletion({
-      model: 'Qwen/Qwen2.5-7B-Instruct',
-      messages: [{ role: 'user', content: prompt }],
-      response_format: { type: 'json_object' },
+      model: "Qwen/Qwen2.5-7B-Instruct",
+      messages: [{ role: "user", content: prompt }],
+      response_format: { type: "json_object" },
       max_tokens: 200,
       temperature: 0.1
     });
@@ -54,7 +54,7 @@ ${JSON.stringify(telemetry)}
     const maxG = Math.max(Math.abs(telemetry.accelerometer.x), Math.abs(telemetry.accelerometer.y));
     return {
       isCrash: maxG > 10,
-      severity: maxG > 10 ? 'CRITICAL' : 'NOMINAL',
+      severity: maxG > 10 ? "CRITICAL" : "NOMINAL",
       confidence: 0.99
     };
   }

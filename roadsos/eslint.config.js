@@ -1,3 +1,9 @@
+/**
+ * Team Name: Divine coder
+ * Team Lead: Praveen kumar
+ * Project: RoadSoS (IIT Madras Hackathon)
+ * Protocol: Ralph Loop (Greenfield Optimized)
+ */
 import globals from "globals";
 import js from "@eslint/js";
 
@@ -10,6 +16,7 @@ export default [
       globals: {
         ...globals.browser,
         ...globals.node,
+        ...globals.jest,
       },
     },
     rules: {

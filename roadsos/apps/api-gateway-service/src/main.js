@@ -4,14 +4,14 @@
  * Project: RoadSoS (IIT Madras Hackathon)
  */
 
-import express from 'express';
-import { createServer } from 'http';
-import helmet from 'helmet';
-import cors from 'cors';
-import { loadHardenedConfig, setGlobalEnv } from './config/env.js';
-import { IngestionRouter } from './api/routes/ingestion.routes.js';
-import { persistenceService } from './services/persistence-service.js';
-import { UDPIngestionGateway } from './ingestion/udp-gateway.js';
+import express from "express";
+import { createServer } from "http";
+import helmet from "helmet";
+import cors from "cors";
+import { loadHardenedConfig, setGlobalEnv } from "./config/env.js";
+import { IngestionRouter } from "./api/routes/ingestion.routes.js";
+import { persistenceService } from "./services/persistence-service.js";
+import { UDPIngestionGateway } from "./ingestion/udp-gateway.js";
 
 /**
  * PRODUCTION-GRADE API GATEWAY (OPTIMIZED)
@@ -30,13 +30,13 @@ const startServer = async () => {
     // 1. Secure Secret Synchronization (HashiCorp Vault)
     const hardenedEnv = await loadHardenedConfig();
     setGlobalEnv(hardenedEnv);
-    console.log('📡 [Boot] Vault Identity Verified. Secrets Synced.');
+    console.log("📡 [Boot] Vault Identity Verified. Secrets Synced.");
 
     // 2. Middleware Config (Delayed for Env injection)
-    app.use(cors({ origin: hardenedEnv.NODE_ENV === 'production' ? /\.roadsos\.in$/ : '*' }));
-    app.use(express.json({ limit: '10kb' }));
-    app.use('/api/v1/ingestion', IngestionRouter);
-    app.get('/health', (req, res) => res.json({ status: 'UP', vault: 'CONNECTED' }));
+    app.use(cors({ origin: hardenedEnv.NODE_ENV === "production" ? /\.roadsos\.in$/ : "*" }));
+    app.use(express.json({ limit: "10kb" }));
+    app.use("/api/v1/ingestion", IngestionRouter);
+    app.get("/health", (req, res) => res.json({ status: "UP", vault: "CONNECTED" }));
 
     // 3. Recover active incident state from distributed event log
     const initialState = await persistenceService.hydrateState();
@@ -53,7 +53,7 @@ const startServer = async () => {
       console.log(`🚀 Mode: ${hardenedEnv.NODE_ENV} | UDP-Gateway: 1884 (MQTT-SN)`);
     });
   } catch (err) {
-    console.error('🚨 [Boot] Critical initialization failure:', err.message);
+    console.error("🚨 [Boot] Critical initialization failure:", err.message);
     process.exit(1);
   }
 };
