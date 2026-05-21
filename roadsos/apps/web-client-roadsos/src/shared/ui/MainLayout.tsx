@@ -4,7 +4,7 @@ import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { 
-  Home, MapPin, Bell, User, History, Settings, LogOut, Menu, X, ShieldAlert
+  Home, MapPin, Bell, User, History, Settings, LogOut, Menu, X, ShieldAlert, AlertTriangle
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "@/shared/api/supabase";
@@ -79,18 +79,38 @@ export default function MainLayout({ children }: LayoutProps) {
       {!isAuthPage && (
         <header className="fixed top-0 left-0 right-0 z-50 flex h-16 items-center justify-between px-4 pt-safe-top bg-[#0A0D14]/80 backdrop-blur-xl border-b border-white/5">
           <div className="flex flex-col">
-            <span className="text-xs text-white/50 uppercase tracking-wider font-semibold">RoadSOS</span>
-            <span className="text-lg font-bold text-white tracking-wide">Stay Safe, {userName}</span>
+            <span className="text-[10px] text-red-500 uppercase tracking-[0.2em] font-black">RoadSOS</span>
+            <span className="text-sm font-bold text-white/90 tracking-wide">Stay Safe, {userName}</span>
           </div>
 
-          <button 
-            type="button"
-            className="flex h-10 w-10 items-center justify-center rounded-full bg-white/5 hover:bg-white/10 active:scale-95 transition-all border border-white/10 relative"
-            aria-label="Notifications"
-          >
-            <Bell className="h-5 w-5 text-white/80" />
-            <span className="absolute top-2 right-2.5 h-2 w-2 rounded-full bg-red-500 shadow-[0_0_10px_rgba(239,68,68,0.8)]" />
-          </button>
+          <div className="flex items-center gap-2">
+            <button 
+              type="button"
+              className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/5 hover:bg-white/10 active:scale-95 transition-all border border-white/10 relative"
+              aria-label="Notifications"
+            >
+              <Bell className="h-5 w-5 text-white/70" />
+              <span className="absolute top-2.5 right-2.5 h-1.5 w-1.5 rounded-full bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.8)]" />
+            </button>
+
+            <button 
+              onClick={toggleBottomSheet}
+              className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/5 hover:bg-white/10 active:scale-95 transition-all border border-white/10"
+              aria-label="Menu"
+            >
+              <AnimatePresence mode="wait">
+                {isBottomSheetOpen ? (
+                  <motion.div key="close" initial={{ rotate: -90, opacity: 0 }} animate={{ rotate: 0, opacity: 1 }} exit={{ rotate: 90, opacity: 0 }}>
+                    <X className="h-5 w-5 text-white/70" />
+                  </motion.div>
+                ) : (
+                  <motion.div key="menu" initial={{ rotate: 90, opacity: 0 }} animate={{ rotate: 0, opacity: 1 }} exit={{ rotate: -90, opacity: 0 }}>
+                    <Menu className="h-5 w-5 text-white/70" />
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </button>
+          </div>
         </header>
       )}
 
@@ -104,42 +124,47 @@ export default function MainLayout({ children }: LayoutProps) {
       </main>
 
       {/* ======================================================================
-          3. BOTTOM NAVIGATION BAR (Mobile First)
+          3. SOS-ORIENTED BOTTOM NAVIGATION
           ====================================================================== */}
       {!isAuthPage && (
-        <div className="fixed bottom-0 left-0 right-0 z-40 bg-[#0A0D14]/90 backdrop-blur-2xl border-t border-white/10 pb-safe-bottom">
-          <div className="flex h-20 items-center justify-around px-4 max-w-md mx-auto">
+        <div className="fixed bottom-0 left-0 right-0 z-40 pb-safe-bottom px-6 mb-4">
+          <div className="max-w-md mx-auto relative flex items-center justify-between bg-[#1C1C1E]/60 backdrop-blur-3xl border border-white/10 rounded-[32px] h-20 px-2 shadow-[0_20px_50px_rgba(0,0,0,0.5)]">
+            
+            {/* Nav Items */}
             <Link 
               href="/dashboard" 
-              className="flex flex-col items-center justify-center w-16 h-full gap-1.5 active:scale-95 transition-transform"
+              className="flex-1 flex flex-col items-center justify-center gap-1 active:scale-90 transition-all"
             >
-              <Home className={`h-6 w-6 ${pathname === '/dashboard' ? 'text-red-500' : 'text-white/40'}`} />
-              <span className={`text-[10px] font-bold tracking-wide ${pathname === '/dashboard' ? 'text-red-500' : 'text-white/40'}`}>Home</span>
+              <Home className={`h-5 w-5 ${pathname === '/dashboard' ? 'text-white' : 'text-white/30'}`} />
+              <span className={`text-[9px] font-black uppercase tracking-widest ${pathname === '/dashboard' ? 'text-white' : 'text-white/30'}`}>Home</span>
             </Link>
+
+            {/* CENTRAL SOS TRIGGER */}
+            <div className="relative -top-8 px-2">
+              <Link href="/request?type=ambulance" className="block">
+                <div className="h-20 w-20 rounded-full bg-red-600 flex items-center justify-center shadow-[0_10px_30px_rgba(220,38,38,0.5)] border-4 border-[#0A0D14] active:scale-90 transition-all group">
+                   <div className="absolute inset-0 rounded-full border-2 border-white/20 animate-ping opacity-20" />
+                   <AlertTriangle className="h-10 w-10 text-white stroke-[2.5] group-hover:rotate-12 transition-transform" />
+                </div>
+              </Link>
+            </div>
 
             <Link 
               href="/tracking" 
-              className="flex flex-col items-center justify-center w-16 h-full gap-1.5 active:scale-95 transition-transform"
+              className="flex-1 flex flex-col items-center justify-center gap-1 active:scale-90 transition-all"
             >
-              <MapPin className={`h-6 w-6 ${pathname === '/tracking' ? 'text-blue-500' : 'text-white/40'}`} />
-              <span className={`text-[10px] font-bold tracking-wide ${pathname === '/tracking' ? 'text-blue-500' : 'text-white/40'}`}>Track</span>
+              <MapPin className={`h-5 w-5 ${pathname === '/tracking' ? 'text-white' : 'text-white/30'}`} />
+              <span className={`text-[9px] font-black uppercase tracking-widest ${pathname === '/tracking' ? 'text-white' : 'text-white/30'}`}>Track</span>
             </Link>
 
-            <button 
-              onClick={toggleBottomSheet}
-              className="flex flex-col items-center justify-center w-16 h-full gap-1.5 active:scale-95 transition-transform"
-            >
-              <Menu className={`h-6 w-6 ${isBottomSheetOpen ? 'text-white' : 'text-white/40'}`} />
-              <span className={`text-[10px] font-bold tracking-wide ${isBottomSheetOpen ? 'text-white' : 'text-white/40'}`}>Menu</span>
-            </button>
           </div>
         </div>
       )}
 
       {/* ======================================================================
-          4. BOTTOM SHEET (Menu Navigation)
+          4. PREMIUM SIDEBAR (Menu Navigation)
           ====================================================================== */}
-      <AnimatePresence>
+      <AnimatePresence mode="wait">
         {isBottomSheetOpen && (
           <>
             {/* Backdrop */}
@@ -148,53 +173,69 @@ export default function MainLayout({ children }: LayoutProps) {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={toggleBottomSheet}
-              className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm"
+              className="fixed inset-0 z-[60] bg-black/80 backdrop-blur-md"
             />
             
-            {/* Sheet */}
+            {/* Sidebar */}
             <motion.div 
-              initial={{ y: "100%" }}
-              animate={{ y: 0 }}
-              exit={{ y: "100%" }}
-              transition={{ type: "spring", damping: 25, stiffness: 300 }}
-              className="fixed bottom-0 left-0 right-0 z-50 bg-[#1C1C1E] rounded-t-3xl border-t border-white/10 shadow-[0_-20px_50px_rgba(0,0,0,0.5)] pb-safe-bottom"
+              initial={{ x: "100%" }}
+              animate={{ x: 0 }}
+              exit={{ x: "100%" }}
+              transition={{ type: "spring", damping: 30, stiffness: 300 }}
+              className="fixed top-0 right-0 bottom-0 z-[70] w-[80%] max-w-[320px] bg-[#0A0D14] border-l border-white/5 shadow-2xl p-8 flex flex-col"
             >
-              <div className="w-full flex justify-center py-4" onClick={toggleBottomSheet}>
-                <div className="w-12 h-1.5 bg-white/20 rounded-full" />
+              <div className="flex justify-between items-center mb-12">
+                <div className="flex flex-col">
+                  <span className="text-[10px] text-red-500 font-black tracking-[0.3em] uppercase">Security</span>
+                  <span className="text-2xl font-black italic tracking-tighter uppercase text-white">Menu</span>
+                </div>
+                <button onClick={toggleBottomSheet} className="h-10 w-10 rounded-xl bg-white/5 flex items-center justify-center">
+                  <X className="h-5 w-5 text-white/50" />
+                </button>
               </div>
-              
-              <div className="px-6 pb-8 space-y-2 max-w-md mx-auto">
-                <Link href="/profile" className="flex items-center gap-4 p-4 rounded-2xl bg-white/5 active:bg-white/10 transition-colors border border-white/5 mb-6">
-                  <div className="h-12 w-12 rounded-full bg-red-500/20 flex items-center justify-center shrink-0">
+
+              <div className="flex-1 space-y-2">
+                <Link href="/profile" onClick={toggleBottomSheet} className="flex items-center gap-4 p-5 rounded-3xl bg-white/[0.03] border border-white/5 mb-6 group active:scale-95 transition-all">
+                  <div className="h-12 w-12 rounded-2xl bg-red-500/10 flex items-center justify-center shrink-0">
                     <User className="h-6 w-6 text-red-500" />
                   </div>
                   <div className="flex-1">
-                    <h3 className="font-bold text-white text-lg">My Profile</h3>
-                    <p className="text-white/50 text-sm">Manage personal info</p>
+                    <h3 className="font-black text-white text-sm uppercase tracking-wider">{userName}</h3>
+                    <p className="text-white/30 text-[10px] font-bold uppercase tracking-widest">Verified User</p>
                   </div>
                 </Link>
 
-                <Link href="/driver" className="flex items-center gap-4 p-4 rounded-2xl active:bg-white/5 transition-colors">
-                  <ShieldAlert className="h-6 w-6 text-white/50" />
-                  <span className="font-bold text-white/90 text-lg">Responder Hub</span>
-                </Link>
+                <div className="space-y-1">
+                  {[
+                    { href: "/driver", icon: ShieldAlert, label: "Responder Hub", color: "text-blue-500" },
+                    { href: "/history", icon: History, label: "Incident History", color: "text-emerald-500" },
+                    { href: "/settings", icon: Settings, label: "System Config", color: "text-purple-500" },
+                  ].map((item) => (
+                    <Link 
+                      key={item.href}
+                      href={item.href} 
+                      onClick={toggleBottomSheet}
+                      className="flex items-center gap-4 p-4 rounded-2xl hover:bg-white/5 transition-colors group"
+                    >
+                      <item.icon className={`h-5 w-5 ${item.color} group-hover:scale-110 transition-transform`} />
+                      <span className="font-black text-white/70 text-xs uppercase tracking-[0.1em] group-hover:text-white">{item.label}</span>
+                    </Link>
+                  ))}
+                </div>
+              </div>
 
-                <Link href="/history" className="flex items-center gap-4 p-4 rounded-2xl active:bg-white/5 transition-colors">
-                  <History className="h-6 w-6 text-white/50" />
-                  <span className="font-bold text-white/90 text-lg">Incident History</span>
-                </Link>
-
-                <Link href="/settings" className="flex items-center gap-4 p-4 rounded-2xl active:bg-white/5 transition-colors">
-                  <Settings className="h-6 w-6 text-white/50" />
-                  <span className="font-bold text-white/90 text-lg">App Settings</span>
-                </Link>
-
-                <div className="h-[1px] w-full bg-white/10 my-4" />
-
-                <button onClick={handleSignOut} className="w-full flex items-center gap-4 p-4 rounded-2xl active:bg-white/5 transition-colors text-red-500">
+              <div className="mt-auto space-y-6">
+                <div className="h-[1px] w-full bg-white/5" />
+                <button 
+                  onClick={() => { handleSignOut(); toggleBottomSheet(); }} 
+                  className="w-full flex items-center justify-between p-6 rounded-[24px] bg-red-500/5 border border-red-500/10 text-red-500 active:scale-95 transition-all"
+                >
+                  <span className="font-black uppercase italic tracking-tighter text-lg">Sign Out</span>
                   <LogOut className="h-6 w-6" />
-                  <span className="font-bold text-lg">Sign Out</span>
                 </button>
+                <div className="text-center">
+                  <p className="text-[8px] font-black text-white/10 uppercase tracking-[0.4em]">RoadSOS v2.4.0-Hardened</p>
+                </div>
               </div>
             </motion.div>
           </>
