@@ -2,14 +2,9 @@
 
 import React from 'react';
 import { motion } from 'framer-motion';
-import { cn } from './Input';
+import { cn } from '@/shared/lib/utils';
 
-export interface SosButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
-  onSosTriggered?: () => void;
-  isDispatching?: boolean;
-}
-
-export const SosButton = React.forwardRef<HTMLButtonElement, SosButtonProps>(
+export const SosButton = React.forwardRef(
   ({ className, onSosTriggered, isDispatching, ...props }, ref) => {
     return (
       <div className="relative flex items-center justify-center">

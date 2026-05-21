@@ -1,6 +1,6 @@
 import "./globals.css";
 import { Providers } from "./providers";
-import MainLayout from "@/shared/components/layout/MainLayout";
+import MainLayout from "@/shared/ui/MainLayout";
 
 export const metadata = {
   title: "RoadSOS - Emergency Response",

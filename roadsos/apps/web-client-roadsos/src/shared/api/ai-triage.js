@@ -1,12 +1,10 @@
-import { apiClient } from "../../services/api-client.js";
+import { apiClient } from "./api-client.js";
 
 /**
  * AI TRIAGE SERVICE CONNECTOR
  * Routes triage requests to the API Gateway's ingestion endpoint.
  */
 export async function triageEmergency(prompt) {
-  console.log("Triaging emergency via API Gateway:", prompt);
-  
   try {
     return await apiClient.post("/api/triage", { prompt });
   } catch (error) {

@@ -7,59 +7,71 @@
 
 /**
  * AEGIS-CORE GRU (Gated Recurrent Unit) SIMULATOR
- * This implements a pure JavaScript inference engine for temporal telemetry analysis.
- * It uses a pre-trained weight matrix (simulated) to detect crash patterns in time-series data.
+ * Hyper-optimized pure JavaScript inference engine using Float32Arrays
+ * for zero-allocation, minimal memory overhead and strict latency.
  */
-
 export class TemporalAegisGRU {
   constructor() {
-    // Simulated Weights (Normally loaded from a .bin or .json file)
-    // Trained on NCRB Road Safety Dataset (Simulated)
-    this.weights = {
-      updateGate: { w: 0.72, u: 0.45, b: -0.12 },
-      resetGate: { w: 0.65, u: 0.38, b: 0.05 },
-      candidate: { w: 0.88, u: 0.52, b: -0.22 }
-    };
+    // Pack weights into flat TypedArrays to ensure CPU cache locality and zero GC overhead
+    // Format: [w, u, b]
+    this.weights = new Float32Array([
+      0.72, 0.45, -0.12, // Update Gate
+      0.65, 0.38,  0.05, // Reset Gate
+      0.88, 0.52, -0.22  // Candidate
+    ]);
     this.hiddenState = 0.0;
   }
 
   /**
-   * Sigmoid Activation Function
+   * Fast approximate sigmoid
    */
-  sigmoid(x) {
-    return 1 / (1 + Math.exp(-x));
+  fastSigmoid(x) {
+    return x / (1 + Math.abs(x)) * 0.5 + 0.5;
   }
 
   /**
-   * Tanh Activation Function
+   * Fast approximate tanh
    */
-  tanh(x) {
-    return Math.tanh(x);
+  fastTanh(x) {
+    if (x > 3) return 1;
+    if (x < -3) return -1;
+    const x2 = x * x;
+    return x * (27 + x2) / (27 + 9 * x2);
   }
 
   /**
-   * Single Step Inference
+   * Single Step Inference (Zero Allocation)
    * @param {number} input Normalized G-Force
    */
   step(input) {
-    const z = this.sigmoid(this.weights.updateGate.w * input + this.weights.updateGate.u * this.hiddenState + this.weights.updateGate.b);
-    const r = this.sigmoid(this.weights.resetGate.w * input + this.weights.resetGate.u * this.hiddenState + this.weights.resetGate.b);
+    const w = this.weights;
+    const h = this.hiddenState;
     
-    const h_tilde = this.tanh(this.weights.candidate.w * input + this.weights.candidate.u * (r * this.hiddenState) + this.weights.candidate.b);
+    // Update Gate
+    const z = this.fastSigmoid(w[0] * input + w[1] * h + w[2]);
+    // Reset Gate
+    const r = this.fastSigmoid(w[3] * input + w[4] * h + w[5]);
+    // Candidate
+    const h_tilde = this.fastTanh(w[6] * input + w[7] * (r * h) + w[8]);
     
-    this.hiddenState = (1 - z) * this.hiddenState + z * h_tilde;
+    this.hiddenState = (1 - z) * h + z * h_tilde;
     return this.hiddenState;
   }
 
   /**
-   * Process a sequence of telemetry points
-   * @param {Array<number>} sequence Array of resultant G-forces
+   * Process a sequence of telemetry points with minimal allocation
+   * @param {Float32Array|Array<number>} sequence Array of resultant G-forces
    */
   analyzeSequence(sequence) {
     this.hiddenState = 0.0; // Reset state
-    let scores = sequence.map(val => this.step(val / 20.0)); // Normalize to 0-1 range (approx 20G max)
     
-    const finalScore = scores[scores.length - 1];
+    const len = sequence.length;
+    let finalScore = 0;
+    
+    // Execute sequence without array mapping/allocations
+    for (let i = 0; i < len; i++) {
+      finalScore = this.step(sequence[i] * 0.05); // Normalize to 0-1 range (approx 20G max)
+    }
     
     return {
       severityScore: finalScore,

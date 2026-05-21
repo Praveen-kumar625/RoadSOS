@@ -13,7 +13,7 @@ import axios from "axios";
 export class VaultService {
   constructor() {
     this.vaultAddr = process.env.VAULT_ADDR || "http://vault:8200";
-    this.vaultToken = process.env.VAULT_TOKEN || "root";
+    this.vaultToken = process.env.VAULT_TOKEN; // No default — must be explicitly set
   }
 
   /**

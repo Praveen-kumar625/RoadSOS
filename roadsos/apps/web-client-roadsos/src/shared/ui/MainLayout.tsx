@@ -24,6 +24,8 @@ export default function MainLayout({ children }: LayoutProps) {
 
   // Fetch Auth Session
   useEffect(() => {
+    if (!supabase) return;
+
     const fetchUser = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (session?.user?.user_metadata?.full_name) {
@@ -61,8 +63,9 @@ export default function MainLayout({ children }: LayoutProps) {
 
   const toggleBottomSheet = () => setIsBottomSheetOpen((prev) => !prev);
   const handleSignOut = async () => {
-    await supabase.auth.signOut();
-    // Redirect handled by Next.js or state
+    if (supabase) {
+      await supabase.auth.signOut();
+    }
   };
 
   const isAuthPage = pathname === '/auth';

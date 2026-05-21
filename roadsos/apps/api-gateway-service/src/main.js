@@ -12,6 +12,8 @@ import { loadHardenedConfig, setGlobalEnv } from "./config/env.js";
 import { IngestionRouter } from "./api/routes/ingestion.routes.js";
 import { persistenceService } from "./services/persistence-service.js";
 import { UDPIngestionGateway } from "./ingestion/udp-gateway.js";
+import { rateLimiter } from "./api/middlewares/rate-limiter.js";
+import { errorHandler } from "./api/middlewares/error-handler.js";
 
 /**
  * PRODUCTION-GRADE API GATEWAY (OPTIMIZED)
@@ -35,8 +37,12 @@ const startServer = async () => {
     // 2. Middleware Config (Delayed for Env injection)
     app.use(cors({ origin: hardenedEnv.NODE_ENV === "production" ? /\.roadsos\.in$/ : "*" }));
     app.use(express.json({ limit: "10kb" }));
+    app.use(rateLimiter); // Apply global rate limiter
     app.use("/api/v1/ingestion", IngestionRouter);
     app.get("/health", (req, res) => res.json({ status: "UP", vault: "CONNECTED" }));
+
+    // Global Error Handler must be the last middleware
+    app.use(errorHandler);
 
     // 3. Recover active incident state from distributed event log
     const initialState = await persistenceService.hydrateState();

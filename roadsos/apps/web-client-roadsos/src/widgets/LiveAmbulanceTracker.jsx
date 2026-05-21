@@ -1,1 +1,0 @@
-export const LiveAmbulanceTracker = () => <div>Tracker</div>;

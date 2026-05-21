@@ -9,6 +9,7 @@ import { createHash } from "node:crypto";
 import { persistenceService } from "../services/persistence-service.js";
 import { queueV2 } from "../services/queue-service.js";
 import { HybridLogicalClock } from "../../../../libs/core-utils/src/hlc.js";
+import { emergencyIngestionLimiter } from "../middlewares/rate-limiter.js";
 
 const router = Router();
 const clock = new HybridLogicalClock("gateway-01");
@@ -16,7 +17,7 @@ const clock = new HybridLogicalClock("gateway-01");
 /**
  * IDEMPOTENT CRASH INGESTION (HARDENED)
  */
-router.post("/crash", async (req, res) => {
+router.post("/crash", emergencyIngestionLimiter, async (req, res, next) => {
   const { telemetry, location, timestamp, hardware_id, hlc_timestamp, vehicle_class } = req.body;
 
   try {
@@ -64,7 +65,7 @@ router.post("/crash", async (req, res) => {
 
   } catch (err) {
     console.error("🚨 [Ingestion] Critical Pipeline Failure:", err.message);
-    res.status(500).json({ error: "INGESTION_FAILURE", reason: "DURABILITY_SYNC_ERROR" });
+    next(err); // Pass to global error handler
   }
 });
 

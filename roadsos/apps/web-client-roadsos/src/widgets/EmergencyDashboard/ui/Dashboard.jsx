@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState, useRef } from "react";
+import React, { useEffect, useState, useCallback, useMemo } from "react";
 import { AlertTriangle, Ambulance, Wrench, Shield, Car, Loader2, ChevronRight } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -8,25 +8,45 @@ import { emergencyService } from "@/shared/api/emergencyService";
 import { supabase } from "@/shared/api/supabase";
 import { motion } from "framer-motion";
 
+const CONTAINER_VARIANTS = {
+  hidden: { opacity: 0 },
+  show: {
+    opacity: 1,
+    transition: { staggerChildren: 0.1 }
+  }
+};
+
+const ITEM_VARIANTS = {
+  hidden: { opacity: 0, y: 20 },
+  show: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 300, damping: 24 } }
+};
+
+const QUICK_REQUEST_ITEMS = [
+  { id: "ambulance", label: "Ambulance", icon: Ambulance, color: "text-red-500", bg: "bg-red-500/10" },
+  { id: "towing", label: "Tow Truck", icon: Car, color: "text-blue-500", bg: "bg-blue-500/10" },
+  { id: "mechanic", label: "Mechanic", icon: Wrench, color: "text-yellow-500", bg: "bg-yellow-500/10" },
+  { id: "police", label: "Police", icon: Shield, color: "text-purple-500", bg: "bg-purple-500/10" },
+];
+
 // -----------------------------------------------------------------------------
 // SWIPE TO SOS COMPONENT
 // -----------------------------------------------------------------------------
-const SwipeToSOS = () => {
+const SwipeToSOS = React.memo(() => {
   const router = useRouter();
   const [isUnlocked, setIsUnlocked] = useState(false);
   
-  const handleDragEnd = (event, info) => {
-    if (info.offset.x > 180) {
-      triggerEmergency();
-    }
-  };
-
-  const triggerEmergency = () => {
+  const triggerEmergency = useCallback(() => {
     setIsUnlocked(true);
     setTimeout(() => {
       router.push("/request?type=ambulance");
     }, 300);
-  };
+  }, [router]);
+
+  const handleDragEnd = useCallback((event, info) => {
+    if (info.offset.x > 180) {
+      triggerEmergency();
+    }
+  }, [triggerEmergency]);
 
   return (
     <div className="w-full bg-[#1C1C1E]/80 backdrop-blur-xl border border-white/10 rounded-full h-[72px] p-2 flex items-center relative overflow-hidden shadow-2xl mt-auto">
@@ -65,7 +85,8 @@ const SwipeToSOS = () => {
       </motion.div>
     </div>
   );
-};
+});
+SwipeToSOS.displayName = "SwipeToSOS";
 
 // -----------------------------------------------------------------------------
 // DASHBOARD VIEW
@@ -74,33 +95,31 @@ export function Dashboard() {
   const [activeRequests, setActiveRequests] = useState([]);
   const [loading, setLoading] = useState(true);
 
+  const fetchRequests = useCallback(async () => {
+    try {
+      const reqs = await emergencyService.getActiveRequests();
+      setActiveRequests(reqs);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
   useEffect(() => {
     let interval;
-
-    const fetchRequests = async () => {
-      try {
-        const reqs = await emergencyService.getActiveRequests();
-        setActiveRequests(reqs);
-      } catch (err) {
-        console.error(err);
-      } finally {
-        setLoading(false);
-      }
-    };
-    
     // Initial fetch
     fetchRequests();
 
     // 1. Subscribe to Supabase Realtime (WebSockets)
     let channel;
-    if (process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+    if (supabase && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
       channel = supabase
         .channel('public:emergency_requests')
         .on(
           'postgres_changes',
           { event: '*', schema: 'public', table: 'emergency_requests' },
           (payload) => {
-            console.log('Realtime Dashboard Update:', payload);
             fetchRequests(); // Keep state synced with backend
           }
         )
@@ -112,36 +131,23 @@ export function Dashboard() {
     
     return () => {
       clearInterval(interval);
-      if (channel) supabase.removeChannel(channel);
+      if (supabase && channel) supabase.removeChannel(channel);
     };
-  }, []);
+  }, [fetchRequests]);
 
   const hasActiveEmergency = activeRequests.length > 0;
   const latestEmergency = activeRequests[0];
 
-  const containerVariants = {
-    hidden: { opacity: 0 },
-    show: {
-      opacity: 1,
-      transition: { staggerChildren: 0.1 }
-    }
-  };
-
-  const itemVariants = {
-    hidden: { opacity: 0, y: 20 },
-    show: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 300, damping: 24 } }
-  };
-
   return (
     <motion.div 
-      variants={containerVariants}
+      variants={CONTAINER_VARIANTS}
       initial="hidden"
       animate="show"
       className="flex flex-col min-h-[calc(100vh-160px)] px-4 py-4 space-y-6"
     >
       
       {/* 1. Live Tracking Widget */}
-      <motion.div variants={itemVariants} className="space-y-3">
+      <motion.div variants={ITEM_VARIANTS} className="space-y-3">
         <div className="flex items-center justify-between px-1">
           <h2 className="text-sm font-bold text-white/50 uppercase tracking-wider">Live Status</h2>
           {hasActiveEmergency && (
@@ -202,16 +208,11 @@ export function Dashboard() {
       <div className="flex-1" />
 
       {/* 2. Glassmorphic 2x2 Grid (Bottom 40%) */}
-      <motion.div variants={itemVariants} className="space-y-3 mt-auto">
+      <motion.div variants={ITEM_VARIANTS} className="space-y-3 mt-auto">
         <h2 className="text-sm font-bold text-white/50 uppercase tracking-wider px-1">Quick Request</h2>
         
         <div className="grid grid-cols-2 gap-3">
-          {[
-            { id: "ambulance", label: "Ambulance", icon: Ambulance, color: "text-red-500", bg: "bg-red-500/10" },
-            { id: "towing", label: "Tow Truck", icon: Car, color: "text-blue-500", bg: "bg-blue-500/10" },
-            { id: "mechanic", label: "Mechanic", icon: Wrench, color: "text-yellow-500", bg: "bg-yellow-500/10" },
-            { id: "police", label: "Police", icon: Shield, color: "text-purple-500", bg: "bg-purple-500/10" },
-          ].map((item) => (
+          {QUICK_REQUEST_ITEMS.map((item) => (
             <Link 
               key={item.id}
               href={`/request?type=${item.id}`} 
@@ -228,7 +229,7 @@ export function Dashboard() {
       </motion.div>
 
       {/* 3. Swipe to SOS Slider */}
-      <motion.div variants={itemVariants} className="pt-4 pb-2">
+      <motion.div variants={ITEM_VARIANTS} className="pt-4 pb-2">
         <SwipeToSOS />
       </motion.div>
       

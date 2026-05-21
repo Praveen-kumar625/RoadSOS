@@ -25,6 +25,10 @@ export function AuthPage() {
     setErrorMsg("");
 
     try {
+      if (!supabase) {
+        throw new Error("Supabase is not configured. Please check your environment variables.");
+      }
+
       if (isLogin) {
         // Handle Login
         const { error } = await supabase.auth.signInWithPassword({

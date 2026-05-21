@@ -36,7 +36,7 @@ export function AmbulanceTracker() {
 
     // 1. Subscribe to Supabase Realtime (WebSockets)
     let channel;
-    if (process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+    if (supabase && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
       channel = supabase
         .channel('public:emergency_requests_tracking')
         .on(
@@ -52,14 +52,14 @@ export function AmbulanceTracker() {
     interval = setInterval(fetchRequests, 10000);
     return () => {
       clearInterval(interval);
-      if (channel) supabase.removeChannel(channel);
+      if (supabase && channel) supabase.removeChannel(channel);
     };
   }, []);
 
   const handleCancel = async () => {
     if (!activeRequest) return;
     
-    if (process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+    if (supabase && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
       await supabase
         .from('emergency_requests')
         .update({ status: 'cancelled' })

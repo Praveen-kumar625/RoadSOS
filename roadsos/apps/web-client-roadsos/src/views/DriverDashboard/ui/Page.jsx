@@ -12,34 +12,32 @@ export function DriverDashboard() {
   const [loading, setLoading] = useState(true);
   const { permission, requestPermission, triggerLocalNotification } = useNotifications();
 
+  const fetchRequests = useCallback(async () => {
+    try {
+      const reqs = await emergencyService.getActiveRequests();
+      setRequests(reqs);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
   useEffect(() => {
     let interval;
-    
-    const fetchRequests = async () => {
-      try {
-        const reqs = await emergencyService.getActiveRequests();
-        setRequests(reqs);
-      } catch (err) {
-        console.error(err);
-      } finally {
-        setLoading(false);
-      }
-    };
     
     // Initial fetch
     fetchRequests();
 
     // 1. Subscribe to Supabase Realtime (WebSockets)
     let channel;
-    if (process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+    if (supabase && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
       channel = supabase
         .channel('public:emergency_requests')
         .on(
           'postgres_changes',
           { event: 'INSERT', schema: 'public', table: 'emergency_requests' },
           (payload) => {
-            console.log('Realtime Emergency Update:', payload);
-            
             // Trigger Push Notification for new emergency
             if (payload.new && payload.new.status === 'pending') {
               triggerLocalNotification("🚨 URGENT: New Emergency Request", {
@@ -59,16 +57,16 @@ export function DriverDashboard() {
 
     return () => {
       clearInterval(interval);
-      if (channel) supabase.removeChannel(channel);
+      if (supabase && channel) supabase.removeChannel(channel);
     };
-  }, []);
+  }, [fetchRequests, triggerLocalNotification]);
 
-  const handleAccept = async (id) => {
+  const handleAccept = useCallback(async (id) => {
     // Optimistic UI update
     setRequests(prev => prev.filter(req => req.id !== id));
     
     // If we have Supabase, actually update the status
-    if (process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+    if (supabase && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
       await supabase
         .from('emergency_requests')
         .update({ status: 'accepted' })
@@ -79,7 +77,7 @@ export function DriverDashboard() {
       const updated = existing.map(req => req.id === id ? { ...req, status: 'accepted' } : req);
       localStorage.setItem('mock_emergencies', JSON.stringify(updated));
     }
-  };
+  }, []);
 
   return (
     <div className="space-y-6 pb-20 p-4">

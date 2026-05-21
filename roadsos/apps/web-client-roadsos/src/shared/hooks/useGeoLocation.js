@@ -1,1 +1,0 @@
-export const useGeoLocation = () => ({ lat: 0, lng: 0 });

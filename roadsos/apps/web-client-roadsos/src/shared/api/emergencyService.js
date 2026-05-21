@@ -25,7 +25,7 @@ export const emergencyService = {
       };
 
       // Try Supabase first
-      if (process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+      if (supabase && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
         const { data: responseData, error } = await supabase
           .from('emergency_requests')
           .insert([requestPayload])
@@ -49,7 +49,7 @@ export const emergencyService = {
 
   async getActiveRequests() {
     try {
-      if (process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+      if (supabase && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
         const { data, error } = await supabase
           .from('emergency_requests')
           .select('*')

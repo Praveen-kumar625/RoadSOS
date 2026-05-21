@@ -42,22 +42,20 @@ const envSchema = z.object({
  */
 export const loadHardenedConfig = async () => {
   const vaultSecrets = await vaultService.getSecrets();
-  
+
+  // Merge: process.env → Vault secrets (Vault takes precedence)
+  // NO hardcoded fallbacks — Zod will fail-fast if required values are missing.
   const config = {
     ...process.env,
     ...vaultSecrets,
-    // Baseline hardcoded production endpoints (to be moved to Vault in next pass)
-    SUPABASE_URL: vaultSecrets.SUPABASE_URL || "https://raeiaewxsdxgzumyafiw.supabase.co",
-    UPSTASH_REDIS_REST_URL: vaultSecrets.UPSTASH_REDIS_REST_URL || "https://enough-sheep-82324.upstash.io",
-    UPSTASH_REDIS_REST_TOKEN: vaultSecrets.UPSTASH_REDIS_REST_TOKEN || "gQAAAAAAAUGUAAIgcDIyOTVjZTFmOGI3NGY0OGJkYTBkYWI5MzQ1M2YyZDBiNg",
-    REDIS_URL: vaultSecrets.REDIS_URL || "rediss://default:gQAAAAAAAUGUAAIgcDIyOTVjZTFmOGI3NGY0OGJkYTBkYWI5MzQ1M2YyZDBiNg@enough-sheep-82324.upstash.io:6379"
   };
 
   try {
     const _env = envSchema.parse(config);
     return _env;
   } catch (error) {
-    console.error("❌ [CRITICAL] Environment Validation Failed:", JSON.stringify(error.format(), null, 2));
+    console.error("❌ [CRITICAL] Environment Validation Failed. Ensure all required secrets are set in .env or Vault.");
+    console.error(JSON.stringify(error.format(), null, 2));
     process.exit(1);
   }
 };
